@@ -7,23 +7,39 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { resetAndNavigate } from '@utils/NavigationUtils';
-import AppColors from '@utils/colors';
-import { AppStrings } from '@utils/strings';
-import { screenRoutes } from '@utils/screen_routes';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import AppColors from '@/utils/AppColors';
+import { AppStrings } from '@/utils/AppStrings';
+import { ScreenRoutes } from '@/utils/screen_routes';
+import AppLoader from '@/component/AppLoader';
+import AppButton from '@/component/AppButton';
+import { firebaseSignUp } from '@/services/FirebaseService';
+import { useAppDispatch } from '@/redux/hook';
+import { setUserData } from '@/redux/slices/authSlice';
 
 const SignupScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
+  // use redux toolkit dispatch
+  const dispatch = useAppDispatch();
 
-  const handleSignup = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+  const handleSignup = async (): Promise<void> => {
     if (!email || !password || !confirmPassword) {
       setError('All fields are required.');
       return;
@@ -33,111 +49,183 @@ const SignupScreen: React.FC = () => {
       return;
     }
     setError('');
-    // TODO: Implement signup logic
+    setIsLoading(true);
+
+    const res: Awaited<ReturnType<typeof firebaseSignUp>> =
+      await firebaseSignUp(name, email, password);
+
+    setIsLoading(false);
+    console.log('Sign up result:', res);
+
+    if (!res.success) {
+      Alert.alert('Sign up', res.msg);
+    } else {
+      console.log('on success register user data: ', res?.data);
+      dispatch(
+        setUserData({
+          userData: res.data,
+          isLoggedIn: true,
+        }),
+      );
+      resetAndNavigate(ScreenRoutes.MainTab);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.logoContainer}>
-        {/* Replace with your logo asset if available */}
-        <View style={styles.logoCircle}>
-          <FontAwesome name="leaf" size={48} color={AppColors.white} />
-        </View>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.title}>{'Sign Up'}</Text>
-        <Text style={styles.subtitle}>
-          {'Create a new account to get started.'}
-        </Text>
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
-        </View>
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="alternate-email"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={AppStrings.emailPlaceholder}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{AppStrings.passwordLabel}</Text>
-        </View>
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="lock-outline"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={AppStrings.passwordPlaceholder}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <MaterialIcons
-              name={showPassword ? 'visibility' : 'visibility-off'}
-              size={22}
-              color={AppColors.inputPlaceholder}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{'Confirm Password'}</Text>
-        </View>
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="lock-outline"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={'Confirm Password'}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            secureTextEntry={!showConfirmPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
-          <TouchableOpacity
-            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+      <AppLoader visible={isLoading} size="large" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <MaterialIcons
-              name={showConfirmPassword ? 'visibility' : 'visibility-off'}
-              size={22}
-              color={AppColors.inputPlaceholder}
-            />
-          </TouchableOpacity>
-        </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <TouchableOpacity style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>{AppStrings.signUp}</Text>
-        </TouchableOpacity>
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>
-            {AppStrings.alreadyHaveAnAccount}
-          </Text>
-          <TouchableOpacity
-            onPress={() => resetAndNavigate(screenRoutes.LoginScreen)}
-          >
-            <Text style={styles.signupText}>{AppStrings.loginButton}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <FontAwesome name="leaf" size={48} color={AppColors.white} />
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.title}>{'Sign Up'}</Text>
+              <Text style={styles.subtitle}>
+                {'Create a new account to get started.'}
+              </Text>
+
+              {/* name fields */}
+              <View style={styles.inputLabelContainer}>
+                <Text style={styles.inputLabel}>{AppStrings.userName}</Text>
+              </View>
+
+              <View style={styles.inputWithIcon}>
+                <MaterialIcons
+                  name="person"
+                  size={22}
+                  color={AppColors.inputPlaceholder}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={AppStrings.userNamePlaceholder}
+                  placeholderTextColor={AppColors.inputPlaceholder}
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  value={name}
+                  onChangeText={setName}
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View style={styles.inputLabelContainer}>
+                <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
+              </View>
+
+              <View style={styles.inputWithIcon}>
+                <MaterialIcons
+                  name="alternate-email"
+                  size={22}
+                  color={AppColors.inputPlaceholder}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={AppStrings.emailPlaceholder}
+                  placeholderTextColor={AppColors.inputPlaceholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View style={styles.inputLabelContainer}>
+                <Text style={styles.inputLabel}>
+                  {AppStrings.passwordLabel}
+                </Text>
+              </View>
+              <View style={styles.inputWithIcon}>
+                <MaterialIcons
+                  name="lock-outline"
+                  size={22}
+                  color={AppColors.inputPlaceholder}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={AppStrings.passwordPlaceholder}
+                  placeholderTextColor={AppColors.inputPlaceholder}
+                  //secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  returnKeyType="next"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={22}
+                    color={AppColors.inputPlaceholder}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputLabelContainer}>
+                <Text style={styles.inputLabel}>{'Confirm Password'}</Text>
+              </View>
+              <View style={styles.inputWithIcon}>
+                <MaterialIcons
+                  name="lock-outline"
+                  size={22}
+                  color={AppColors.inputPlaceholder}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={'Confirm Password'}
+                  placeholderTextColor={AppColors.inputPlaceholder}
+                  //secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <MaterialIcons
+                    name={showConfirmPassword ? 'visibility' : 'visibility-off'}
+                    size={22}
+                    color={AppColors.inputPlaceholder}
+                  />
+                </TouchableOpacity>
+              </View>
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              <AppButton
+                title={AppStrings.signUp}
+                onPress={handleSignup}
+                style={styles.button}
+              />
+              <View style={styles.footerContainer}>
+                <Text style={styles.footerText}>
+                  {AppStrings.alreadyHaveAnAccount}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => resetAndNavigate(ScreenRoutes.LoginScreen)}
+                >
+                  <Text style={styles.signupText}>
+                    {AppStrings.loginButton}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

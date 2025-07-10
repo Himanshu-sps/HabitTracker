@@ -7,103 +7,169 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { navigate, resetAndNavigate } from '@utils/NavigationUtils';
-import AppColors from '@utils/colors';
-import { AppStrings } from '@utils/strings';
+import { navigate, resetAndNavigate } from '@/utils/NavigationUtils';
+import AppColors from '@/utils/AppColors';
+import { AppStrings } from '@/utils/AppStrings';
+import AppButton from '@/component/AppButton';
+import { ScreenRoutes } from '@/utils/screen_routes';
+import AppLoader from '@/component/AppLoader';
+import { firebaseLogin } from '@/services/FirebaseService';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+import { setUserData } from '@/redux/slices/authSlice';
+import { useAppDispatch } from '@/redux/hook';
+import { UserDataType } from '@/type';
 
 const LoginScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const handleLogin = () => {
-    // TODO: Implement login logic
+  const dispatch = useAppDispatch();
+
+  const handleLogin = async (): Promise<void> => {
+    setIsLoading(true);
+    const response: Awaited<ReturnType<typeof firebaseLogin>> =
+      await firebaseLogin(email, password);
+    setIsLoading(false);
+
+    if (response.success) {
+      // Fetch user data from Firestore
+      const user = auth().currentUser;
+      if (user) {
+        const userDoc = await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .get();
+        let userData: UserDataType | null = null;
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data && data.id && data.name && data.email) {
+            userData = {
+              id: data.id,
+              name: data.name,
+              email: data.email,
+            };
+          }
+        }
+
+        // dispatch action to fill the userData state
+        dispatch(
+          setUserData({
+            userData,
+            isLoggedIn: true,
+          }),
+        );
+      }
+
+      // then navigate to Main tabs
+      resetAndNavigate(ScreenRoutes.MainTab);
+    } else {
+      Alert.alert('Login', response?.msg);
+    }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = (): void => {
     navigate('ForgotPasswordScreen');
-  };
-
-  const handleGoogleLogin = () => {
-    // TODO: Implement Google login logic
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.logoContainer}>
-        {/* Replace with your logo asset if available */}
-        <View style={styles.logoCircle}>
-          <FontAwesome name="leaf" size={48} color={AppColors.white} />
-        </View>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.title}>{AppStrings.loginTitle}</Text>
-        <Text style={styles.subtitle}>{AppStrings.loginSubtitle}</Text>
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
-        </View>
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="alternate-email"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={AppStrings.emailPlaceholder}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{AppStrings.passwordLabel}</Text>
-        </View>
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="lock-outline"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={AppStrings.passwordPlaceholder}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <MaterialIcons
-              name={showPassword ? 'visibility' : 'visibility-off'}
-              size={22}
-              color={AppColors.inputPlaceholder}
-            />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity
-          onPress={handleForgotPassword}
-          style={styles.forgotPasswordContainer}
+      <KeyboardAvoidingView
+        behavior={Platform.OS == 'android' ? 'height' : 'padding'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          // contentContainerStyle={styles.scrollViewContainerStyle}
+          keyboardShouldPersistTaps={'handled'}
         >
-          <Text style={styles.forgotPassword}>{AppStrings.forgotPassword}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>{AppStrings.loginButton}</Text>
-        </TouchableOpacity>
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>{AppStrings.noAccount}</Text>
-          <TouchableOpacity onPress={() => resetAndNavigate('SignupScreen')}>
-            <Text style={styles.signupText}>{AppStrings.signUp}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          <AppLoader visible={isLoading} size="large" />
+          <View style={styles.logoContainer}>
+            {/* Replace with your logo asset if available */}
+            <View style={styles.logoCircle}>
+              <FontAwesome name="leaf" size={48} color={AppColors.white} />
+            </View>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.title}>{AppStrings.loginTitle}</Text>
+            <Text style={styles.subtitle}>{AppStrings.loginSubtitle}</Text>
+            <View style={styles.inputLabelContainer}>
+              <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
+            </View>
+            <View style={styles.inputWithIcon}>
+              <MaterialIcons
+                name="alternate-email"
+                size={22}
+                color={AppColors.inputPlaceholder}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder={AppStrings.emailPlaceholder}
+                placeholderTextColor={AppColors.inputPlaceholder}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+            <View style={styles.inputLabelContainer}>
+              <Text style={styles.inputLabel}>{AppStrings.passwordLabel}</Text>
+            </View>
+            <View style={styles.inputWithIcon}>
+              <MaterialIcons
+                name="lock-outline"
+                size={22}
+                color={AppColors.inputPlaceholder}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder={AppStrings.passwordPlaceholder}
+                placeholderTextColor={AppColors.inputPlaceholder}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <MaterialIcons
+                  name={showPassword ? 'visibility' : 'visibility-off'}
+                  size={22}
+                  color={AppColors.inputPlaceholder}
+                />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={handleForgotPassword}
+              style={styles.forgotPasswordContainer}
+            >
+              <Text style={styles.forgotPassword}>
+                {AppStrings.forgotPassword}
+              </Text>
+            </TouchableOpacity>
+            <AppButton
+              title={AppStrings.loginButton}
+              onPress={handleLogin}
+              style={styles.button}
+            />
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>{AppStrings.noAccount}</Text>
+              <TouchableOpacity
+                onPress={() => resetAndNavigate('SignupScreen')}
+              >
+                <Text style={styles.signupText}>{AppStrings.signUp}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
