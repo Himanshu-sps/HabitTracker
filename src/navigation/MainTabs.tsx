@@ -1,15 +1,21 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeStack from '@navigation/HomeStack';
-import HistoryScreen from '@screens/history/HistoryScreen';
-import ProfileScreen from '@screens/profile/ProfileScreen';
+import HomeStack from '@/navigation/HomeStack';
+import HistoryScreen from '@/screens/history/HistoryScreen';
+import ProfileScreen from '@/screens/profile/ProfileScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { ScreenRoutes } from '@utils/screen_routes';
+import { ScreenRoutes } from '@/utils/screen_routes';
+import AppColors from '@/utils/AppColors';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabs = () => (
-  <Tab.Navigator screenOptions={{ headerShown: false }}>
+  <Tab.Navigator
+    screenOptions={{
+      tabBarActiveTintColor: AppColors.primary,
+      headerShown: false,
+    }}
+  >
     <Tab.Screen
       name={ScreenRoutes.HomeStack}
       component={HomeStack}

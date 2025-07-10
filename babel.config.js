@@ -9,11 +9,7 @@ module.exports = function (api) {
         {
           root: ['./src'],
           alias: {
-            '@navigation': './src/navigation',
-            '@utils': './src/utils',
-            '@screens': './src/screens',
-            '@redux': './src/redux',
-            '@types': './src/types',
+            '@': './src',
           },
         },
       ],

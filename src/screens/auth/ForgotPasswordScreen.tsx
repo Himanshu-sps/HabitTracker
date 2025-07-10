@@ -9,10 +9,10 @@ import {
   Platform,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { resetAndNavigate } from '@utils/NavigationUtils';
-import AppColors from '@utils/colors';
-import { AppStrings } from '@utils/strings';
-import { screenRoutes } from '@utils/screen_routes';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
+import AppColors from '@/utils/AppColors';
+import { AppStrings } from '@/utils/AppStrings';
+import { ScreenRoutes } from '@/utils/screen_routes';
 
 const ForgotPasswordScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -79,7 +79,7 @@ const ForgotPasswordScreen: React.FC = () => {
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>{AppStrings.forgotFooter}</Text>
           <TouchableOpacity
-            onPress={() => resetAndNavigate(screenRoutes.LoginScreen)}
+            onPress={() => resetAndNavigate(ScreenRoutes.LoginScreen)}
           >
             <Text style={styles.signupText}>{AppStrings.loginButton}</Text>
           </TouchableOpacity>
