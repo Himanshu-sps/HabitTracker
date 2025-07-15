@@ -13,6 +13,7 @@ import { resetAndNavigate } from '@/utils/NavigationUtils';
 import AppColors from '@/utils/AppColors';
 import { AppStrings } from '@/utils/AppStrings';
 import { ScreenRoutes } from '@/utils/screen_routes';
+import AppTextInput from '@/component/AppTextInput';
 
 const ForgotPasswordScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -46,28 +47,16 @@ const ForgotPasswordScreen: React.FC = () => {
         <Text style={styles.title}>{AppStrings.forgotTitle}</Text>
         <Text style={styles.subtitle}>{AppStrings.forgotSubtitle}</Text>
 
-        <View style={styles.inputLabelContainer}>
-          <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
-        </View>
-
-        <View style={styles.inputWithIcon}>
-          <MaterialIcons
-            name="alternate-email"
-            size={22}
-            color={AppColors.inputPlaceholder}
-            style={styles.inputIcon}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder={AppStrings.emailPlaceholder}
-            placeholderTextColor={AppColors.inputPlaceholder}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
+        <AppTextInput
+          label={AppStrings.emailLabel}
+          iconName="alternate-email"
+          placeholder={AppStrings.emailPlaceholder}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+          returnKeyType="done"
+        />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 

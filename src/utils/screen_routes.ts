@@ -11,5 +11,6 @@ export const ScreenRoutes = {
   HomeScreen: 'HomeScreen',
   AddEditHabitScreen: 'AddEditHabitScreen',
   HistoryScreen: 'HistoryScreen',
+  HabitListScreen: 'HabitListScreen',
   ProfileScreen: 'ProfileScreen',
 };

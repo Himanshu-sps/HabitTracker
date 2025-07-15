@@ -4,8 +4,10 @@ import HomeStack from '@/navigation/HomeStack';
 import HistoryScreen from '@/screens/history/HistoryScreen';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AppColors from '@/utils/AppColors';
+import HabitListScreen from '@/screens/habits/HabitListScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +28,17 @@ const MainTabs = () => (
     />
 
     <Tab.Screen
+      name={ScreenRoutes.HabitListScreen}
+      component={HabitListScreen}
+      options={{
+        tabBarIcon: ({ color }) => (
+          <FontAwesomeIcon name="leaf" color={color} size={24} />
+        ),
+        title: 'Habits',
+      }}
+    />
+
+    <Tab.Screen
       name={ScreenRoutes.HistoryScreen}
       component={HistoryScreen}
       options={{
@@ -35,6 +48,7 @@ const MainTabs = () => (
         title: 'History',
       }}
     />
+
     <Tab.Screen
       name={ScreenRoutes.ProfileScreen}
       component={ProfileScreen}
