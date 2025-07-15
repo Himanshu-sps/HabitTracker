@@ -1,7 +1,7 @@
 const AppColors = {
   primary: '#f16eaa',
   primaryDark: '#0A3FFF',
-  secondary: '#f3e9ef',
+  surface: '#ecf0f1',
   white: '#fff',
   black: '#0000000',
   cardBg: '#fff',
@@ -17,21 +17,21 @@ const AppColors = {
 
   pinkBg: '#f3e9ef',
 
-  habitRed: '#FF6F61',
+  habitRed: '#ff6b6b',
   habitBlue: '#4F8EF7',
   habitGreen: '#43D049',
-  habitYellow: '#FFD600',
-  habitPurple: '#D26AC2',
-  habitLightBlue: '#8ED6FB',
+  habitGrey: '#808e9b',
+  habitPurple: '#6c5ce7',
+  habitOrange: '#f39c12',
 };
 
 export const HABIT_COLORS = [
   AppColors.habitRed,
   AppColors.habitBlue,
   AppColors.habitGreen,
-  AppColors.habitYellow,
+  AppColors.habitGrey,
   AppColors.habitPurple,
-  AppColors.habitLightBlue,
+  AppColors.habitOrange,
 ];
 
 export default AppColors;

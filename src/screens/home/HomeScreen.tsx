@@ -1,7 +1,6 @@
 import {
   StyleSheet,
   Text,
-  Alert,
   View,
   FlatList,
   ListRenderItem,
@@ -19,17 +18,14 @@ import {
   subscribeToHabitsForUser,
   trackHabitCompletion,
   fetchCompletedHabitsForUserOnDate,
+  deleteHabitsForUser,
 } from '@/services/FirebaseService';
 import { HabitType } from '@/type';
 import AppColors from '@/utils/AppColors';
 import { AppTextStyles } from '@/utils/AppTextStyles';
 import moment from 'moment';
-import {
-  DATE_FORMAT_DISPLAY,
-  DATE_FORMAT_ZERO,
-  formatDate,
-} from '@/utils/DateTimeUtils';
-import HabitListItem from './components/HabitListItem';
+import { DATE_FORMAT_ZERO, formatDate } from '@/utils/DateTimeUtils';
+import HabitListItem from '../habits/HabitListItem';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { RootState } from '@/redux/store';
@@ -38,32 +34,42 @@ import {
   showInfoAlert,
   showErrorAlert,
 } from '@/utils/AlertUtils';
+import AppLoader from '@/component/AppLoader';
 
 const HomeScreen = () => {
+  const [loading, setLoading] = useState(false);
+  /** Redux user state **/
   const user = useAppSelector(
     (state: RootState & any) => state.authReducer.userData,
   );
+
+  /** Redux habit state **/
   const allHabits = useAppSelector(
-    (state: RootState & any) => state.habitReducer.allHabits,
+    (state: RootState) => state.habitReducer.allHabits,
   );
   const todaysHabits = useAppSelector(
-    (state: RootState & any) => state.habitReducer.todaysHabits,
+    (state: RootState) => state.habitReducer.todaysHabits,
   );
-  const dispatch = useAppDispatch();
 
-  const flatListRef = useRef<FlatList>(null);
+  /** Redux dispatch state **/
+  const dispatch = useAppDispatch();
   const swipeableRefs = useRef<{ [key: string]: any }>({});
 
   useEffect(() => {
     if (!user?.id) return;
+
+    // get today date with zero time
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
+
+    // Listener for habit list, basically snapshot for habit CRUD operation
     const unsubscribe = subscribeToHabitsForUser(user.id, async habits => {
       dispatch(setAllHabits(habits));
       // Filter for today's habits (active today)
       const activeHabits = habits.filter((habit: HabitType) => {
         return today >= habit.startDate && today <= habit.endDate;
       });
-      // Fetch completed habits for today
+
+      // Fetch completed habits for today (list of habitIds)
       const completedHabitIds = await fetchCompletedHabitsForUserOnDate(
         user.id,
         today,
@@ -72,10 +78,73 @@ const HomeScreen = () => {
       const filtered = activeHabits.filter(
         (habit: HabitType) => !completedHabitIds.includes(habit.id ?? ''),
       );
+      // save in redux state
       dispatch(setTodaysHabits(filtered));
     });
     return () => unsubscribe();
   }, [user?.id, dispatch]);
+
+  /**
+   *
+   * @param habit
+   * @param closeSwipeable
+   */
+  const handleDeleteAction = (
+    habit: HabitType,
+    closeSwipeable: () => void,
+  ): void => {
+    showConfirmAlert(
+      'Delete Habit',
+      `Are you sure you want to delete full "${habit.name}"?`,
+      async () => {
+        setLoading(true);
+        let res = await deleteHabitsForUser(habit, user?.id);
+        if (res.success) {
+          setLoading(false);
+          dispatch(
+            setAllHabits(allHabits.filter((h: HabitType) => h.id !== habit.id)),
+          );
+        } else {
+          setLoading(false);
+        }
+      },
+      closeSwipeable,
+      'Delete',
+      'Cancel',
+    );
+  };
+
+  /**
+   *
+   * @param habit
+   * @returns
+   */
+  const handleCompleteAction = async (habit: HabitType): Promise<void> => {
+    if (!user?.id || !habit.id) return;
+
+    // Generate today's date with zero format
+    const today = formatDate(new Date(), DATE_FORMAT_ZERO);
+
+    // insert HabitTracking document
+    const result = await trackHabitCompletion(user.id, habit.id, today);
+    if (result.success) {
+      // on success we will update the redux state with action setTodaysHabits
+      dispatch(
+        setTodaysHabits(
+          todaysHabits.filter(
+            (h: HabitType) => (h.id ?? '') !== (habit.id ?? ''),
+          ),
+        ),
+      );
+
+      showInfoAlert(
+        'Habit Completed',
+        `You marked "${habit.name}" as completed!`,
+      );
+    } else {
+      showErrorAlert(result.msg || 'Failed to track completion');
+    }
+  };
 
   /**
    * Flat list item function
@@ -89,51 +158,18 @@ const HomeScreen = () => {
       <HabitListItem
         ref={swipeableRefs.current[item.id || item.userId]}
         habit={item}
-        onPress={() => {}}
-        onEdit={() => {}}
-        onDelete={(habit, closeSwipeable) => {
-          showConfirmAlert(
-            'Delete Habit',
-            `Are you sure you want to delete "${habit.name}"?`,
-            () =>
-              dispatch(
-                setAllHabits(
-                  allHabits.filter((h: HabitType) => h.id !== habit.id),
-                ),
-              ),
-            closeSwipeable,
-            'Delete',
-            'Cancel',
-          );
-        }}
-        onComplete={async habit => {
-          if (!user?.id || !habit.id) return;
-          const today = formatDate(new Date(), DATE_FORMAT_ZERO);
-          const result = await trackHabitCompletion(user.id, habit.id, today);
-          if (result.success) {
-            dispatch(
-              setTodaysHabits(
-                todaysHabits.filter(
-                  (h: HabitType) => (h.id ?? '') !== (habit.id ?? ''),
-                ),
-              ),
-            );
-          }
-          if (result.success) {
-            showInfoAlert(
-              'Habit Completed',
-              `You marked "${habit.name}" as completed!`,
-            );
-          } else {
-            showErrorAlert(result.msg || 'Failed to track completion');
-          }
-        }}
+        onPress={() =>
+          navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
+        }
+        onDelete={handleDeleteAction}
+        onComplete={handleCompleteAction}
       />
     );
   };
 
   return (
     <>
+      <AppLoader visible={loading} size="large" />
       <SafeAreaView style={styles.container}>
         <FlatList
           data={todaysHabits}
@@ -154,23 +190,32 @@ const HomeScreen = () => {
                       color={AppColors.white}
                     />
                   </View>
-                  <View style={styles.greetingTextCol}>
-                    <Text style={styles.greetingHello}>Hello,</Text>
-                    <Text style={styles.greetingName}>{user?.name}</Text>
-                  </View>
+
                   <View style={styles.datePillContainer}>
                     <Text style={styles.datePill}>
                       {moment().format('dddd, MMMM D')}
                     </Text>
                   </View>
                 </View>
+
+                <AppSpacer vertical={14} />
+
+                <View style={styles.greetingTextCol}>
+                  <Text style={styles.greetingHello}>Hello,</Text>
+                  <Text style={styles.greetingName}>{user?.name}</Text>
+                </View>
               </View>
+
               <AppSpacer vertical={28} />
+
               <Text style={AppTextStyles.subtitle}>Today's Motivation ✨</Text>
+
               <View style={styles.card}>
                 <Text style={styles.motivation}>Get-up</Text>
               </View>
+
               <AppSpacer vertical={24} />
+
               <Text style={AppTextStyles.subtitle}>Today's Habits</Text>
             </>
           }
@@ -194,7 +239,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    backgroundColor: AppColors.secondary,
+    backgroundColor: AppColors.surface,
   },
   greetingCard: {
     backgroundColor: AppColors.white,
@@ -202,8 +247,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 12,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -213,6 +258,7 @@ const styles = StyleSheet.create({
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     flex: 1,
   },
   avatarCircle: {

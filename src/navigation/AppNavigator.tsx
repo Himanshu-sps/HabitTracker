@@ -6,6 +6,7 @@ import { navigationRef } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AuthStack from '@/navigation/AuthStack';
 import MainTabs from './MainTabs';
+import AddEditHabitScreen from '@/screens/home/AddEditHabitScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,10 @@ const AppNavigator = () => {
         <Stack.Screen name={ScreenRoutes.AuthStack} component={AuthStack} />
 
         <Stack.Screen name={ScreenRoutes.MainTab} component={MainTabs} />
+        <Stack.Screen
+          name={ScreenRoutes.AddEditHabitScreen}
+          component={AddEditHabitScreen}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
