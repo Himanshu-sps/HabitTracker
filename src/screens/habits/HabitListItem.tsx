@@ -15,13 +15,12 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 interface Props {
   habit: HabitType;
   onPress: () => void;
-  onEdit: () => void;
   onDelete: (habit: HabitType, closeSwipeable: () => void) => void;
   onComplete: (habit: HabitType) => void;
 }
 
 const HabitListItem = forwardRef<any, Props>(
-  ({ habit, onPress, onEdit, onDelete, onComplete }, ref) => {
+  ({ habit, onPress, onDelete, onComplete }, ref) => {
     const swipeableRef = useRef<any>(null);
 
     useImperativeHandle(ref, () => ({

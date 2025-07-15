@@ -118,7 +118,6 @@ const AddEditHabitScreen = () => {
       reminderTime: reminderTimeUTC, // UTC ISO string (date+time)
     };
 
-    console.log('on habit submit: ', JSON.stringify(habit));
     const res = await addHabitToFirestore(habit);
     setLoading(false);
     if (res.success) {
@@ -358,7 +357,7 @@ const AddEditHabitScreen = () => {
               onValueChange={setReminderEnabled}
               trackColor={{
                 false: AppColors.inputBg,
-                true: AppColors.secondary,
+                true: AppColors.surface,
               }}
               thumbColor={reminderEnabled ? AppColors.primary : '#f4f3f4'}
             />

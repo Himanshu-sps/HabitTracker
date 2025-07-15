@@ -268,3 +268,41 @@ export const fetchCompletedHabitsForUserOnDate = async (
     return [];
   }
 };
+
+export const deleteHabitsForUser = async (
+  habit: HabitType,
+  userId: string,
+): Promise<BaseResponseType> => {
+  try {
+    if (!habit.id) {
+      throw new Error('Habit ID is missing');
+    }
+
+    const batch = firestore().batch();
+
+    const habitRef = firestore().collection('habits').doc(habit.id);
+    batch.delete(habitRef);
+
+    const trackingSnapshot = await firestore()
+      .collection('habitTracking')
+      .where('habitId', '==', habit.id)
+      .where('userId', '==', userId)
+      .get();
+
+    trackingSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    return {
+      success: true,
+      msg: 'Habit deleted successfully.',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      msg: error.message || 'Failed to delete habit.',
+    };
+  }
+};
