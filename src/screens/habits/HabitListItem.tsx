@@ -17,10 +17,22 @@ interface Props {
   onPress: () => void;
   onDelete: (habit: HabitType, closeSwipeable: () => void) => void;
   onComplete: (habit: HabitType) => void;
+  enableLeftSwipe?: boolean;
+  enableRightSwipe?: boolean;
 }
 
 const HabitListItem = forwardRef<any, Props>(
-  ({ habit, onPress, onDelete, onComplete }, ref) => {
+  (
+    {
+      habit,
+      onPress,
+      onDelete,
+      onComplete,
+      enableLeftSwipe = true,
+      enableRightSwipe = true,
+    },
+    ref,
+  ) => {
     const swipeableRef = useRef<any>(null);
 
     useImperativeHandle(ref, () => ({
@@ -28,20 +40,28 @@ const HabitListItem = forwardRef<any, Props>(
     }));
 
     // Render right action (swipe right to left)
-    const renderRightActions = () => (
-      <View style={styles.rightActionContainer}>
-        <MaterialIcons name="delete" size={28} color={AppColors.white} />
-        <Text style={styles.actionText}>Delete</Text>
-      </View>
-    );
+    const renderRightActions = enableRightSwipe
+      ? () => (
+          <View style={styles.rightActionContainer}>
+            <MaterialIcons name="delete" size={28} color={AppColors.white} />
+            <Text style={styles.actionText}>Delete</Text>
+          </View>
+        )
+      : undefined;
 
     // Render left action (swipe left to right)
-    const renderLeftActions = () => (
-      <View style={styles.leftActionContainer}>
-        <MaterialIcons name="check-circle" size={28} color={AppColors.white} />
-        <Text style={styles.actionText}>Completed</Text>
-      </View>
-    );
+    const renderLeftActions = enableLeftSwipe
+      ? () => (
+          <View style={styles.leftActionContainer}>
+            <MaterialIcons
+              name="check-circle"
+              size={28}
+              color={AppColors.white}
+            />
+            <Text style={styles.actionText}>Completed</Text>
+          </View>
+        )
+      : undefined;
 
     return (
       <Swipeable
@@ -49,9 +69,9 @@ const HabitListItem = forwardRef<any, Props>(
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
         onSwipeableOpen={direction => {
-          if (direction === 'right') {
+          if (direction === 'right' && enableLeftSwipe) {
             onComplete(habit);
-          } else if (direction === 'left') {
+          } else if (direction === 'left' && enableRightSwipe) {
             onDelete(habit, () => swipeableRef.current?.close());
           }
         }}

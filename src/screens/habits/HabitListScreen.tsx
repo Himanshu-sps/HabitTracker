@@ -18,6 +18,8 @@ import AppLoader from '@/component/AppLoader';
 import AppColors, { HABIT_COLORS } from '@/utils/AppColors';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppTextStyles } from '@/utils/AppTextStyles';
+import { navigate } from '@/utils/NavigationUtils';
+import { ScreenRoutes } from '@/utils/screen_routes';
 
 const HabitListScreen = () => {
   const user = useAppSelector((state: RootState) => state.authReducer.userData);
@@ -32,6 +34,22 @@ const HabitListScreen = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [filteredList, setFilteredList] = useState<HabitType[]>([]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setSelectedColor('');
+    }, []),
+  );
+
+  useEffect(() => {
+    if (selectedColor !== '') {
+      setFilteredList(
+        allHabits.filter((habit: HabitType) => habit.color == selectedColor),
+      );
+    } else {
+      setFilteredList(allHabits);
+    }
+  }, [selectedColor, allHabits]);
+
   const renderItem = ({ item }: { item: HabitType }) => {
     if (!swipeableRefs.current[item.id || item.userId]) {
       swipeableRefs.current[item.id || item.userId] = React.createRef();
@@ -40,7 +58,9 @@ const HabitListScreen = () => {
       <HabitListItem
         ref={swipeableRefs.current[item.id || item.userId]}
         habit={item}
-        onPress={() => {}}
+        onPress={() =>
+          navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
+        }
         onDelete={(habit, closeSwipeable) => {
           if (!user?.id) {
             return;
@@ -74,25 +94,10 @@ const HabitListScreen = () => {
             'Completion is only tracked for today in the Home screen.',
           );
         }}
+        enableLeftSwipe={false}
       />
     );
   };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setSelectedColor('');
-    }, []),
-  );
-
-  useEffect(() => {
-    if (selectedColor !== '') {
-      setFilteredList(
-        allHabits.filter((habit: HabitType) => habit.color == selectedColor),
-      );
-    } else {
-      setFilteredList(allHabits);
-    }
-  }, [selectedColor, allHabits]);
 
   return (
     <SafeAreaView style={styles.container}>

@@ -17,7 +17,7 @@ const AppColors = {
 
   pinkBg: '#f3e9ef',
 
-  habitRed: '#eb4d4b',
+  habitRed: '#ff6b6b',
   habitBlue: '#4F8EF7',
   habitGreen: '#43D049',
   habitGrey: '#808e9b',

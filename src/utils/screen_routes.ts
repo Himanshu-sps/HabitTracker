@@ -10,6 +10,7 @@ export const ScreenRoutes = {
   ForgotPasswordScreen: 'ForgotPasswordScreen',
   HomeScreen: 'HomeScreen',
   AddEditHabitScreen: 'AddEditHabitScreen',
+  JournalScreen: 'JournalScreen',
   HistoryScreen: 'HistoryScreen',
   HabitListScreen: 'HabitListScreen',
   ProfileScreen: 'ProfileScreen',

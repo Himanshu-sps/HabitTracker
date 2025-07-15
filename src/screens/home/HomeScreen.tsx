@@ -158,7 +158,9 @@ const HomeScreen = () => {
       <HabitListItem
         ref={swipeableRefs.current[item.id || item.userId]}
         habit={item}
-        onPress={() => {}}
+        onPress={() =>
+          navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
+        }
         onDelete={handleDeleteAction}
         onComplete={handleCompleteAction}
       />
@@ -188,25 +190,32 @@ const HomeScreen = () => {
                       color={AppColors.white}
                     />
                   </View>
-                  <View style={styles.greetingTextCol}>
-                    <Text style={styles.greetingHello}>
-                      Hello, {allHabits.length}
-                    </Text>
-                    <Text style={styles.greetingName}>{user?.name}</Text>
-                  </View>
+
                   <View style={styles.datePillContainer}>
                     <Text style={styles.datePill}>
                       {moment().format('dddd, MMMM D')}
                     </Text>
                   </View>
                 </View>
+
+                <AppSpacer vertical={14} />
+
+                <View style={styles.greetingTextCol}>
+                  <Text style={styles.greetingHello}>Hello,</Text>
+                  <Text style={styles.greetingName}>{user?.name}</Text>
+                </View>
               </View>
+
               <AppSpacer vertical={28} />
+
               <Text style={AppTextStyles.subtitle}>Today's Motivation ✨</Text>
+
               <View style={styles.card}>
                 <Text style={styles.motivation}>Get-up</Text>
               </View>
+
               <AppSpacer vertical={24} />
+
               <Text style={AppTextStyles.subtitle}>Today's Habits</Text>
             </>
           }
@@ -238,8 +247,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 12,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
     shadowColor: AppColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -249,6 +258,7 @@ const styles = StyleSheet.create({
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     flex: 1,
   },
   avatarCircle: {

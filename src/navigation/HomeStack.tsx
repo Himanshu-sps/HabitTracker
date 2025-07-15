@@ -9,10 +9,6 @@ const Stack = createNativeStackNavigator();
 const HomeStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name={ScreenRoutes.HomeScreen} component={HomeScreen} />
-    <Stack.Screen
-      name={ScreenRoutes.AddEditHabitScreen}
-      component={AddEditHabitScreen}
-    />
   </Stack.Navigator>
 );
 

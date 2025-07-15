@@ -28,9 +28,13 @@ import {
   // toUTCISOString, // No longer needed for start/end date
   toUTCTimeString,
 } from '@/utils/DateTimeUtils';
-import { serverTimestamp } from '@react-native-firebase/firestore';
+import { navigationRef } from '@/utils/NavigationUtils';
+import { HabitType } from '@/type';
 
 const AddEditHabitScreen = () => {
+  const habitToEdit = (
+    navigationRef.getCurrentRoute()?.params as { habit?: HabitType }
+  )?.habit;
   const [habitName, setHabitName] = useState('');
   const [habitDesc, setHabitDesc] = useState('');
   const [selectedColor, setSelectedColor] = useState(HABIT_COLORS[0]);
@@ -47,6 +51,30 @@ const AddEditHabitScreen = () => {
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
 
   const user = useAppSelector(state => state.authReducer.userData);
+
+  React.useEffect(() => {
+    if (habitToEdit) {
+      setHabitName(habitToEdit.name || '');
+      setHabitDesc(habitToEdit.description || '');
+      setSelectedColor(habitToEdit.color || HABIT_COLORS[0]);
+      setStartDate(
+        habitToEdit.startDate
+          ? formatDate(habitToEdit.startDate, DATE_FORMAT_DISPLAY)
+          : '',
+      );
+      setEndDate(
+        habitToEdit.endDate
+          ? formatDate(habitToEdit.endDate, DATE_FORMAT_DISPLAY)
+          : '',
+      );
+      setReminderEnabled(habitToEdit.reminderEnabled || false);
+      setReminderTime(
+        habitToEdit.reminderTime
+          ? formatDate(habitToEdit.reminderTime, TIME_FORMAT_DISPLAY)
+          : '',
+      );
+    }
+  }, [habitToEdit]);
 
   const handleStartDatePickerVisisbility = (visible: boolean) =>
     setStartDatePickerVisibility(visible);
@@ -283,7 +311,7 @@ const AddEditHabitScreen = () => {
           </View>
 
           {/* Reminders */}
-          <Text style={styles.sectionTitle}>Time</Text>
+          <Text style={styles.sectionTitle}>Time *</Text>
           <TouchableOpacity
             style={styles.timeRow}
             activeOpacity={0.7}
