@@ -24,6 +24,7 @@ import AppButton from '@/component/AppButton';
 import { firebaseSignUp } from '@/services/FirebaseService';
 import { useAppDispatch } from '@/redux/hook';
 import { setUserData } from '@/redux/slices/authSlice';
+import AppTextInput from '@/component/AppTextInput';
 
 const SignupScreen: React.FC = () => {
   // use redux toolkit dispatch
@@ -98,112 +99,68 @@ const SignupScreen: React.FC = () => {
               </Text>
 
               {/* name fields */}
-              <View style={styles.inputLabelContainer}>
-                <Text style={styles.inputLabel}>{AppStrings.userName}</Text>
-              </View>
-
-              <View style={styles.inputWithIcon}>
-                <MaterialIcons
-                  name="person"
-                  size={22}
-                  color={AppColors.inputPlaceholder}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder={AppStrings.userNamePlaceholder}
-                  placeholderTextColor={AppColors.inputPlaceholder}
-                  keyboardType="default"
-                  autoCapitalize="none"
-                  value={name}
-                  onChangeText={setName}
-                  returnKeyType="next"
-                />
-              </View>
-
-              <View style={styles.inputLabelContainer}>
-                <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
-              </View>
-
-              <View style={styles.inputWithIcon}>
-                <MaterialIcons
-                  name="alternate-email"
-                  size={22}
-                  color={AppColors.inputPlaceholder}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder={AppStrings.emailPlaceholder}
-                  placeholderTextColor={AppColors.inputPlaceholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={setEmail}
-                  returnKeyType="next"
-                />
-              </View>
-
-              <View style={styles.inputLabelContainer}>
-                <Text style={styles.inputLabel}>
-                  {AppStrings.passwordLabel}
-                </Text>
-              </View>
-              <View style={styles.inputWithIcon}>
-                <MaterialIcons
-                  name="lock-outline"
-                  size={22}
-                  color={AppColors.inputPlaceholder}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder={AppStrings.passwordPlaceholder}
-                  placeholderTextColor={AppColors.inputPlaceholder}
-                  //secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  returnKeyType="next"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <MaterialIcons
-                    name={showPassword ? 'visibility' : 'visibility-off'}
-                    size={22}
-                    color={AppColors.inputPlaceholder}
-                  />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.inputLabelContainer}>
-                <Text style={styles.inputLabel}>{'Confirm Password'}</Text>
-              </View>
-              <View style={styles.inputWithIcon}>
-                <MaterialIcons
-                  name="lock-outline"
-                  size={22}
-                  color={AppColors.inputPlaceholder}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder={'Confirm Password'}
-                  placeholderTextColor={AppColors.inputPlaceholder}
-                  //secureTextEntry={!showConfirmPassword}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <MaterialIcons
-                    name={showConfirmPassword ? 'visibility' : 'visibility-off'}
-                    size={22}
-                    color={AppColors.inputPlaceholder}
-                  />
-                </TouchableOpacity>
-              </View>
+              <AppTextInput
+                label={AppStrings.userName}
+                iconName="person"
+                placeholder={AppStrings.userNamePlaceholder}
+                keyboardType="default"
+                autoCapitalize="none"
+                value={name}
+                onChangeText={setName}
+                returnKeyType="next"
+              />
+              <AppTextInput
+                label={AppStrings.emailLabel}
+                iconName="alternate-email"
+                placeholder={AppStrings.emailPlaceholder}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                returnKeyType="next"
+              />
+              <AppTextInput
+                label={AppStrings.passwordLabel}
+                iconName="lock-outline"
+                placeholder={AppStrings.passwordPlaceholder}
+                //secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                returnKeyType="next"
+                rightIcon={
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <MaterialIcons
+                      name={showPassword ? 'visibility' : 'visibility-off'}
+                      size={22}
+                      color={AppColors.inputPlaceholder}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+              <AppTextInput
+                label={'Confirm Password'}
+                iconName="lock-outline"
+                placeholder={'Confirm Password'}
+                //secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                returnKeyType="done"
+                rightIcon={
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <MaterialIcons
+                      name={
+                        showConfirmPassword ? 'visibility' : 'visibility-off'
+                      }
+                      size={22}
+                      color={AppColors.inputPlaceholder}
+                    />
+                  </TouchableOpacity>
+                }
+              />
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <AppButton
                 title={AppStrings.signUp}

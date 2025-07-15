@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -25,6 +24,7 @@ import auth from '@react-native-firebase/auth';
 import { setUserData } from '@/redux/slices/authSlice';
 import { useAppDispatch } from '@/redux/hook';
 import { UserDataType } from '@/type';
+import AppTextInput from '@/component/AppTextInput';
 
 const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -86,13 +86,9 @@ const LoginScreen: React.FC = () => {
         behavior={Platform.OS == 'android' ? 'height' : 'padding'}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          // contentContainerStyle={styles.scrollViewContainerStyle}
-          keyboardShouldPersistTaps={'handled'}
-        >
+        <ScrollView keyboardShouldPersistTaps={'handled'}>
           <AppLoader visible={isLoading} size="large" />
           <View style={styles.logoContainer}>
-            {/* Replace with your logo asset if available */}
             <View style={styles.logoCircle}>
               <FontAwesome name="leaf" size={48} color={AppColors.white} />
             </View>
@@ -100,52 +96,36 @@ const LoginScreen: React.FC = () => {
           <View style={styles.card}>
             <Text style={styles.title}>{AppStrings.loginTitle}</Text>
             <Text style={styles.subtitle}>{AppStrings.loginSubtitle}</Text>
-            <View style={styles.inputLabelContainer}>
-              <Text style={styles.inputLabel}>{AppStrings.emailLabel}</Text>
-            </View>
-            <View style={styles.inputWithIcon}>
-              <MaterialIcons
-                name="alternate-email"
-                size={22}
-                color={AppColors.inputPlaceholder}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={AppStrings.emailPlaceholder}
-                placeholderTextColor={AppColors.inputPlaceholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-            <View style={styles.inputLabelContainer}>
-              <Text style={styles.inputLabel}>{AppStrings.passwordLabel}</Text>
-            </View>
-            <View style={styles.inputWithIcon}>
-              <MaterialIcons
-                name="lock-outline"
-                size={22}
-                color={AppColors.inputPlaceholder}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={AppStrings.passwordPlaceholder}
-                placeholderTextColor={AppColors.inputPlaceholder}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialIcons
-                  name={showPassword ? 'visibility' : 'visibility-off'}
-                  size={22}
-                  color={AppColors.inputPlaceholder}
-                />
-              </TouchableOpacity>
-            </View>
+            <AppTextInput
+              label={AppStrings.emailLabel}
+              iconName="alternate-email"
+              placeholder={AppStrings.emailPlaceholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              returnKeyType="next"
+            />
+            <AppTextInput
+              label={AppStrings.passwordLabel}
+              iconName="lock-outline"
+              placeholder={AppStrings.passwordPlaceholder}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+              returnKeyType="done"
+              rightIcon={
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={22}
+                    color={AppColors.inputPlaceholder}
+                  />
+                </TouchableOpacity>
+              }
+            />
             <TouchableOpacity
               onPress={handleForgotPassword}
               style={styles.forgotPasswordContainer}

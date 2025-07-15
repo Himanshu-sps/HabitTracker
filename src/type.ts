@@ -18,3 +18,19 @@ export interface BaseResponseType<T = any> {
   data?: T;
   msg?: string;
 }
+
+/**
+ * Represents a habit document in Firestore.
+ */
+export interface HabitType {
+  id?: string; // Firestore doc id (optional, filled after save)
+  userId: string;
+  name: string;
+  description: string;
+  color: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  reminderEnabled: boolean;
+  reminderTime?: string; // e.g. '10:00 AM' or ISO time string
+  createdAt: string; // ISO string
+}
