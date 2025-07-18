@@ -24,36 +24,48 @@ import { HabitType } from '@/type';
 import AppColors from '@/utils/AppColors';
 import { AppTextStyles } from '@/utils/AppTextStyles';
 import moment from 'moment';
-import { DATE_FORMAT_ZERO, formatDate } from '@/utils/DateTimeUtils';
+import {
+  DATE_FORMAT_DISPLAY_DAY_MONTH_DATE,
+  DATE_FORMAT_ZERO,
+  formatDate,
+} from '@/utils/DateTimeUtils';
 import HabitListItem from '../habits/HabitListItem';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { RootState } from '@/redux/store';
+import { AppRootState } from '@/redux/store';
 import {
   showConfirmAlert,
   showInfoAlert,
   showErrorAlert,
 } from '@/utils/AlertUtils';
 import AppLoader from '@/component/AppLoader';
+import { useIsFocused } from '@react-navigation/native';
+import { fetchMotivation } from '@/redux/slices/motivationSlice';
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
   /** Redux user state **/
   const user = useAppSelector(
-    (state: RootState & any) => state.authReducer.userData,
+    (state: AppRootState & any) => state.authReducer.userData,
   );
 
   /** Redux habit state **/
   const allHabits = useAppSelector(
-    (state: RootState) => state.habitReducer.allHabits,
+    (state: AppRootState) => state.habitReducer.allHabits,
   );
   const todaysHabits = useAppSelector(
-    (state: RootState) => state.habitReducer.todaysHabits,
+    (state: AppRootState) => state.habitReducer.todaysHabits,
   );
 
   /** Redux dispatch state **/
   const dispatch = useAppDispatch();
   const swipeableRefs = useRef<{ [key: string]: any }>({});
+  const motivation = useAppSelector(
+    (state: AppRootState) => state.motivation.motivationMessage,
+  );
+  const motivationLoading = useAppSelector(
+    (state: AppRootState) => state.motivation.loading,
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -85,6 +97,13 @@ const HomeScreen = () => {
   }, [user?.id, dispatch]);
 
   /**
+   * Use
+   */
+  useEffect(() => {
+    dispatch(fetchMotivation());
+  }, []);
+
+  /**
    *
    * @param habit
    * @param closeSwipeable
@@ -95,7 +114,7 @@ const HomeScreen = () => {
   ): void => {
     showConfirmAlert(
       'Delete Habit',
-      `Are you sure you want to delete full "${habit.name}"?`,
+      `Are you sure you want to delete entire "${habit.name}"?`,
       async () => {
         setLoading(true);
         let res = await deleteHabitsForUser(habit, user?.id);
@@ -193,7 +212,7 @@ const HomeScreen = () => {
 
                   <View style={styles.datePillContainer}>
                     <Text style={styles.datePill}>
-                      {moment().format('dddd, MMMM D')}
+                      {moment().format(DATE_FORMAT_DISPLAY_DAY_MONTH_DATE)}
                     </Text>
                   </View>
                 </View>
@@ -211,7 +230,11 @@ const HomeScreen = () => {
               <Text style={AppTextStyles.subtitle}>Today's Motivation ✨</Text>
 
               <View style={styles.card}>
-                <Text style={styles.motivation}>Get-up</Text>
+                {motivationLoading ? (
+                  <Text style={styles.motivation}>Loading...</Text>
+                ) : (
+                  <Text style={styles.motivation}>{motivation}</Text>
+                )}
               </View>
 
               <AppSpacer vertical={24} />
