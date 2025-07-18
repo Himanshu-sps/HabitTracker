@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { HabitType } from '@/type';
 import HabitListItem from '@/screens/habits/HabitListItem';
-import { RootState } from '@/redux/store';
+import { AppRootState } from '@/redux/store';
 import { setAllHabits } from '@/redux/slices/habitSlice';
 import { showConfirmAlert, showInfoAlert } from '@/utils/AlertUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,10 +22,12 @@ import { navigate } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
 
 const HabitListScreen = () => {
-  const user = useAppSelector((state: RootState) => state.authReducer.userData);
+  const user = useAppSelector(
+    (state: AppRootState) => state.authReducer.userData,
+  );
 
   const allHabits = useAppSelector(
-    (state: RootState) => state.habitReducer.allHabits,
+    (state: AppRootState) => state.habitReducer.allHabits,
   );
   const dispatch = useAppDispatch();
   const swipeableRefs = useRef<{ [key: string]: any }>({});
@@ -68,7 +70,7 @@ const HabitListScreen = () => {
 
           showConfirmAlert(
             'Delete Habit',
-            `Are you sure you want to delete full "${habit.name}"?`,
+            `Are you sure you want to delete entire "${habit.name}"?`,
             async () => {
               setLoading(true);
               let res = await deleteHabitsForUser(habit, user?.id);

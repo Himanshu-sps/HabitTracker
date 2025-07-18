@@ -34,3 +34,25 @@ export interface HabitType {
   reminderTime?: string; // e.g. '10:00 AM' or ISO time string
   createdAt: string; // ISO string
 }
+
+export interface JournalType {
+  id?: string;
+  userId: string;
+  journalEntry: string;
+  journalDate: string;
+  sentimentLabel: string;
+  sentimentScore: number;
+  aiTips: string;
+  updatedAt: string;
+}
+
+export interface SentimentResult {
+  mood: MoodType;
+  tip: string;
+}
+
+export interface MoodType {
+  moodLabel: string;
+  moodIcon: string;
+  moodLevel: number;
+}

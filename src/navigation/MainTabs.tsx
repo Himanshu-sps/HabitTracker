@@ -8,6 +8,7 @@ import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AppColors from '@/utils/AppColors';
 import HabitListScreen from '@/screens/habits/HabitListScreen';
+import JournalScreen from '@/screens/journal/JournalScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -57,6 +58,15 @@ const MainTabs = () => (
           <Icon name="person" color={color} size={24} />
         ),
         title: 'Profile',
+      }}
+    />
+
+    <Tab.Screen
+      name={ScreenRoutes.JournalScreen}
+      component={JournalScreen}
+      options={{
+        tabBarIcon: ({ color }) => <Icon name="book" color={color} size={24} />,
+        title: 'Journal',
       }}
     />
   </Tab.Navigator>

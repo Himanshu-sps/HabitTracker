@@ -1,4 +1,4 @@
-import { UserDataType, BaseResponseType, HabitType } from '@/type';
+import { UserDataType, BaseResponseType, HabitType, JournalType } from '@/type';
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
@@ -305,4 +305,29 @@ export const deleteHabitsForUser = async (
       msg: error.message || 'Failed to delete habit.',
     };
   }
+};
+
+export const saveJournalEntry = async (
+  journal: Omit<JournalType, 'id'>,
+): Promise<JournalType> => {
+  const docRef = await firestore().collection('journals').add(journal);
+  return { ...journal, id: docRef.id };
+};
+
+export const fetchJournalEntry = async (
+  userId: string,
+  journalDate: string,
+): Promise<JournalType | null> => {
+  const snapshot = await firestore()
+    .collection('journals')
+    .where('userId', '==', userId)
+    .where('journalDate', '==', journalDate)
+    .limit(1)
+    .get();
+
+  if (!snapshot.empty) {
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...(doc.data() as Omit<JournalType, 'id'>) };
+  }
+  return null;
 };

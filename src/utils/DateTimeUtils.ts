@@ -1,4 +1,5 @@
 export const DATE_FORMAT_DISPLAY = 'DD-MMM-YYYY';
+export const DATE_FORMAT_DISPLAY_DAY_MONTH_DATE = 'dddd, MMMM D';
 export const TIME_FORMAT_DISPLAY = 'hh:mm A';
 export const DATE_FORMAT_ZERO = 'YYYY-MM-DD[T]00:00:00.000[Z]';
 
