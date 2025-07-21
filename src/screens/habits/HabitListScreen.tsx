@@ -15,13 +15,18 @@ import { showConfirmAlert, showInfoAlert } from '@/utils/AlertUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { deleteHabitsForUser } from '@/services/FirebaseService';
 import AppLoader from '@/component/AppLoader';
-import AppColors, { HABIT_COLORS } from '@/utils/AppColors';
+import { HABIT_COLORS } from '@/utils/AppColors';
 import { useFocusEffect } from '@react-navigation/native';
-import { AppTextStyles } from '@/utils/AppTextStyles';
 import { navigate } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
+import { useTheme } from '@/utils/ThemeContext';
+import { getAppTextStyles } from '@/utils/AppTextStyles';
+import AppHeader from '@/component/AppHeader';
 
 const HabitListScreen = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const textStyles = getAppTextStyles(colors);
   const user = useAppSelector(
     (state: AppRootState) => state.authReducer.userData,
   );
@@ -103,6 +108,7 @@ const HabitListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader title="Habits" showLeftIcon={false} />
       <AppLoader visible={loading} size="large" />
 
       {/* Color Picker */}
@@ -114,17 +120,16 @@ const HabitListScreen = () => {
           style={[
             styles.colorCircle,
             {
-              backgroundColor: AppColors.white,
+              backgroundColor: colors.white,
               borderWidth: selectedColor === '' ? 3 : 1,
-              borderColor:
-                selectedColor === '' ? AppColors.black : AppColors.text,
+              borderColor: selectedColor === '' ? colors.black : colors.text,
               alignItems: 'center',
               justifyContent: 'center',
             },
           ]}
           onPress={() => setSelectedColor('')}
         >
-          <Text style={{ color: AppColors.text, fontSize: 12 }}>All</Text>
+          <Text style={{ color: colors.text, fontSize: 12 }}>All</Text>
         </TouchableOpacity>
 
         {HABIT_COLORS.map(color => (
@@ -135,7 +140,7 @@ const HabitListScreen = () => {
               {
                 backgroundColor: color,
                 borderWidth: selectedColor === color ? 3 : 0,
-                borderColor: AppColors.black,
+                borderColor: colors.black,
               },
             ]}
             onPress={() => setSelectedColor(color)}
@@ -145,7 +150,7 @@ const HabitListScreen = () => {
 
       {filteredList.length <= 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={AppTextStyles.title}>No habits found</Text>
+          <Text style={textStyles.title}>No habits found</Text>
         </View>
       ) : (
         <FlatList
@@ -169,35 +174,37 @@ const HabitListScreen = () => {
 
 export default HabitListScreen;
 
-const styles = StyleSheet.create({
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: AppColors.surface,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: AppColors.text,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  colorCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    marginBottom: 12,
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      padding: 16,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    colorRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 8,
+    },
+    colorCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      marginRight: 12,
+      marginBottom: 12,
+    },
+  });
+}

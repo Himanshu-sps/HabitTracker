@@ -6,7 +6,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import AppColors from '@/utils/AppColors';
+import { useTheme } from '@/utils/ThemeContext';
 
 interface AppButtonProps {
   title: string;
@@ -23,6 +23,8 @@ const AppButton: React.FC<AppButtonProps> = ({
   textStyle,
   disabled = false,
 }) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   return (
     <TouchableOpacity
       style={[styles.button, style, disabled && styles.disabled]}
@@ -35,28 +37,30 @@ const AppButton: React.FC<AppButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 10,
-    shadowColor: AppColors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  buttonText: {
-    color: AppColors.white,
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-  disabled: {
-    backgroundColor: AppColors.inputBorder,
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 4,
+      marginBottom: 10,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    buttonText: {
+      color: colors.white,
+      fontSize: 17,
+      fontWeight: 'bold',
+    },
+    disabled: {
+      backgroundColor: colors.inputBorder,
+    },
+  });
+}
 
 export default AppButton;

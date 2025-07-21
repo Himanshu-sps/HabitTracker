@@ -35,3 +35,5 @@ export const moodList: MoodType[] = [
     moodLevel: 5,
   },
 ];
+
+export const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
