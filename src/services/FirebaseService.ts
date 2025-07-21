@@ -269,6 +269,28 @@ export const fetchCompletedHabitsForUserOnDate = async (
   }
 };
 
+/**
+ * Subscribes to real-time updates for completed habit IDs for a user on a specific date.
+ * @param userId The user's unique ID
+ * @param date The date to check (in DATE_FORMAT_ZERO)
+ * @param onUpdate Callback to receive the updated array of completed habit IDs
+ * @returns Unsubscribe function
+ */
+export const subscribeToCompletedHabitsForDate = (
+  userId: string,
+  date: string,
+  onUpdate: (completedHabitIds: string[]) => void,
+) => {
+  return firestore()
+    .collection('habitTracking')
+    .where('userId', '==', userId)
+    .where('trackingDate', '==', date)
+    .onSnapshot(snapshot => {
+      const completedHabitIds = snapshot.docs.map(doc => doc.data().habitId);
+      onUpdate(completedHabitIds);
+    });
+};
+
 export const deleteHabitsForUser = async (
   habit: HabitType,
   userId: string,
@@ -330,4 +352,43 @@ export const fetchJournalEntry = async (
     return { id: doc.id, ...(doc.data() as Omit<JournalType, 'id'>) };
   }
   return null;
+};
+
+/**
+ * Fetches all journal entries for a user within a date range (inclusive).
+ * @param userId The user's unique ID
+ * @param startDate The start date (YYYY-MM-DD or ISO string)
+ * @param endDate The end date (YYYY-MM-DD or ISO string)
+ * @returns Promise<BaseResponseType<JournalType[]>>
+ */
+export const fetchJournalsForUserInRange = async (
+  userId: string,
+  startDate: string,
+  endDate: string,
+): Promise<BaseResponseType<JournalType[]>> => {
+  console.log(
+    `userId: ${userId} start date ${startDate} -- end date ${endDate}`,
+  );
+  try {
+    const snapshot = await firestore()
+      .collection('journals')
+      .where('userId', '==', userId)
+      .where('journalDate', '>=', startDate)
+      .where('journalDate', '<=', endDate)
+      .orderBy('journalDate', 'asc')
+      .get();
+    const journals: JournalType[] = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<JournalType, 'id'>),
+    }));
+    return {
+      success: true,
+      data: journals,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      msg: error.message || 'Failed to fetch journals',
+    };
+  }
 };

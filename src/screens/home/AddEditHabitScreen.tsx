@@ -30,8 +30,13 @@ import {
 } from '@/utils/DateTimeUtils';
 import { navigationRef } from '@/utils/NavigationUtils';
 import { HabitType } from '@/type';
+import { useTheme } from '@/utils/ThemeContext';
+import { getAppTextStyles } from '@/utils/AppTextStyles';
 
 const AddEditHabitScreen = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const textStyles = getAppTextStyles(colors);
   const habitToEdit = (
     navigationRef.getCurrentRoute()?.params as { habit?: HabitType }
   )?.habit;
@@ -194,7 +199,7 @@ const AddEditHabitScreen = () => {
                   {
                     backgroundColor: color,
                     borderWidth: selectedColor === color ? 3 : 0,
-                    borderColor: AppColors.black,
+                    borderColor: colors.black,
                   },
                 ]}
                 onPress={() => setSelectedColor(color)}
@@ -213,13 +218,13 @@ const AddEditHabitScreen = () => {
               <MaterialIcons
                 name="date-range"
                 size={22}
-                color={AppColors.primary}
+                color={colors.primary}
                 style={{ marginRight: 8 }}
               />
               <Text
                 style={[
                   styles.dateText,
-                  !startDate && { color: AppColors.inputPlaceholder },
+                  !startDate && { color: colors.inputPlaceholder },
                 ]}
               >
                 {startDate == '' ? 'Start date' : startDate}
@@ -271,15 +276,17 @@ const AddEditHabitScreen = () => {
               <MaterialIcons
                 name="date-range"
                 size={22}
-                color={AppColors.primary}
+                color={colors.primary}
                 style={{ marginRight: 8 }}
               />
               <Text
                 style={[
                   styles.dateText,
-                  !endDate && { color: AppColors.inputPlaceholder },
+                  !endDate && {
+                    color: colors.inputPlaceholder,
+                  },
                   !startDate && {
-                    color: AppColors.inputPlaceholder,
+                    color: colors.inputPlaceholder,
                   },
                 ]}
               >
@@ -330,13 +337,13 @@ const AddEditHabitScreen = () => {
             <MaterialIcons
               name="access-time"
               size={22}
-              color={AppColors.primary}
+              color={colors.primary}
               style={{ marginRight: 8 }}
             />
             <Text
               style={[
                 styles.reminderTime,
-                !reminderTime && { color: AppColors.inputPlaceholder },
+                !reminderTime && { color: colors.inputPlaceholder },
               ]}
             >
               {reminderTime ? reminderTime : 'Select Time'}
@@ -384,10 +391,10 @@ const AddEditHabitScreen = () => {
               value={reminderEnabled}
               onValueChange={setReminderEnabled}
               trackColor={{
-                false: AppColors.inputBg,
-                true: AppColors.surface,
+                false: colors.inputBg,
+                true: colors.surface,
               }}
-              thumbColor={reminderEnabled ? AppColors.primary : '#f4f3f4'}
+              thumbColor={reminderEnabled ? colors.primary : '#f4f3f4'}
             />
           </View>
         </ScrollView>
@@ -414,105 +421,107 @@ const AddEditHabitScreen = () => {
 
 export default AddEditHabitScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: AppColors.white,
-    paddingHorizontal: 16,
-  },
-  scrollView: {
-    flex: 1,
-    paddingTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: AppColors.text,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 16,
-  },
-  colorCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    marginBottom: 12,
-  },
-  durationRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  dateInput: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: AppColors.inputBg,
-    borderWidth: 1,
-    borderColor: AppColors.inputBorder,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
-  dateText: {
-    color: AppColors.primary,
-    fontSize: 15,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reminderLabel: {
-    color: AppColors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  reminderTime: {
-    color: AppColors.primary,
-    fontSize: 15,
-  },
-  reminderSwitchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 18,
-    marginVertical: 24,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: '#f3e9ef',
-  },
-  cancelBtnText: {
-    color: AppColors.primary,
-    fontWeight: 'bold',
-  },
-  saveBtn: {
-    flex: 1,
-    backgroundColor: AppColors.primary,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: AppColors.inputBg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: AppColors.inputBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 10,
-    marginTop: 2,
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.white,
+      paddingHorizontal: 16,
+    },
+    scrollView: {
+      flex: 1,
+      paddingTop: 8,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    colorRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+      marginBottom: 16,
+    },
+    colorCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      marginRight: 12,
+      marginBottom: 12,
+    },
+    durationRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 16,
+    },
+    dateInput: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: 'center',
+      paddingHorizontal: 12,
+    },
+    dateText: {
+      color: colors.primary,
+      fontSize: 15,
+    },
+    reminderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    reminderLabel: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    reminderTime: {
+      color: colors.primary,
+      fontSize: 15,
+    },
+    reminderSwitchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 18,
+      marginVertical: 24,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 16,
+    },
+    cancelBtn: {
+      flex: 1,
+      backgroundColor: '#f3e9ef',
+    },
+    cancelBtnText: {
+      color: colors.primary,
+      fontWeight: 'bold',
+    },
+    saveBtn: {
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      marginBottom: 10,
+      marginTop: 2,
+    },
+  });
+}

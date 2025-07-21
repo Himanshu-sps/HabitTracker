@@ -1,8 +1,8 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useRef, forwardRef, useImperativeHandle } from 'react';
 import { HabitType } from '@/type';
-import AppColors from '@/utils/AppColors';
-import { AppTextStyles } from '@/utils/AppTextStyles';
+import { useTheme } from '@/utils/ThemeContext';
+import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppSpacer from '@/component/AppSpacer';
 import {
   DATE_FORMAT_DISPLAY,
@@ -33,6 +33,9 @@ const HabitListItem = forwardRef<any, Props>(
     },
     ref,
   ) => {
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
+    const textStyles = getAppTextStyles(colors);
     const swipeableRef = useRef<any>(null);
 
     useImperativeHandle(ref, () => ({
@@ -43,7 +46,7 @@ const HabitListItem = forwardRef<any, Props>(
     const renderRightActions = enableRightSwipe
       ? () => (
           <View style={styles.rightActionContainer}>
-            <MaterialIcons name="delete" size={28} color={AppColors.white} />
+            <MaterialIcons name="delete" size={28} color={colors.white} />
             <Text style={styles.actionText}>Delete</Text>
           </View>
         )
@@ -53,11 +56,7 @@ const HabitListItem = forwardRef<any, Props>(
     const renderLeftActions = enableLeftSwipe
       ? () => (
           <View style={styles.leftActionContainer}>
-            <MaterialIcons
-              name="check-circle"
-              size={28}
-              color={AppColors.white}
-            />
+            <MaterialIcons name="check-circle" size={28} color={colors.white} />
             <Text style={styles.actionText}>Completed</Text>
           </View>
         )
@@ -84,13 +83,11 @@ const HabitListItem = forwardRef<any, Props>(
                 { backgroundColor: habit.color },
               ]}
             >
-              <Text style={[AppTextStyles.body, styles.habit]}>
-                {habit.name}
-              </Text>
+              <Text style={[textStyles.body, styles.habit]}>{habit.name}</Text>
 
               <AppSpacer vertical={8} />
 
-              <Text style={[AppTextStyles.label, styles.habitDesc]}>
+              <Text style={[textStyles.label, styles.habitDesc]}>
                 {habit.description}
               </Text>
             </View>
@@ -101,11 +98,11 @@ const HabitListItem = forwardRef<any, Props>(
               <MaterialIcons
                 name="calendar-today"
                 size={18}
-                color={AppColors.primary}
+                color={colors.primary}
                 style={{ marginRight: 6 }}
               />
 
-              <Text style={AppTextStyles.label}>
+              <Text style={textStyles.label}>
                 {formatDate(habit.startDate, DATE_FORMAT_DISPLAY)} TO{' '}
                 {formatDate(habit.endDate, DATE_FORMAT_DISPLAY)}
               </Text>
@@ -117,10 +114,10 @@ const HabitListItem = forwardRef<any, Props>(
                 <MaterialIcons
                   name="alarm"
                   size={18}
-                  color={AppColors.primary}
+                  color={colors.primary}
                   style={{ marginRight: 6 }}
                 />
-                <Text style={AppTextStyles.label}>
+                <Text style={textStyles.label}>
                   {formatDate(habit.reminderTime, TIME_FORMAT_DISPLAY)}
                 </Text>
               </View>
@@ -134,67 +131,68 @@ const HabitListItem = forwardRef<any, Props>(
 
 export default HabitListItem;
 
-const styles = StyleSheet.create({
-  shadowContainer: {
-    marginVertical: 10,
-  },
-  card: {
-    backgroundColor: AppColors.white,
-    borderRadius: 8,
-    margin: 2,
-    // iOS Shadow Properties
-    shadowColor: AppColors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  highlightedHabit: {
-    borderRadius: 4,
-    borderBottomStartRadius: 0,
-    borderBottomEndRadius: 0,
-    padding: 8,
-  },
-  habit: {
-    color: AppColors.white,
-  },
-  habitDesc: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-  },
-  dateRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    marginBottom: 14,
-  },
-  rightActionContainer: {
-    backgroundColor: AppColors.habitRed || 'red',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 96,
-    height: '90%',
-    marginVertical: 10,
-    borderRadius: 8,
-    flexDirection: 'column',
-    alignSelf: 'center',
-  },
-  leftActionContainer: {
-    backgroundColor: AppColors.habitGreen || 'green',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 120,
-    height: '90%',
-    marginVertical: 10,
-    borderRadius: 8,
-    flexDirection: 'column',
-    alignSelf: 'center',
-  },
-  actionText: {
-    color: AppColors.white,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    shadowContainer: {
+      marginVertical: 10,
+    },
+    card: {
+      backgroundColor: colors.white,
+      borderRadius: 8,
+      margin: 2,
+      // iOS Shadow Properties
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    highlightedHabit: {
+      borderRadius: 4,
+      borderBottomStartRadius: 0,
+      borderBottomEndRadius: 0,
+      padding: 8,
+    },
+    habit: {
+      color: colors.white,
+    },
+    habitDesc: {
+      color: colors.white,
+      fontWeight: 'bold',
+    },
+    dateRow: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      marginBottom: 14,
+    },
+    rightActionContainer: {
+      backgroundColor: colors.habitRed || 'red',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: 96,
+      height: '90%',
+      marginVertical: 10,
+      borderRadius: 8,
+      flexDirection: 'column',
+      alignSelf: 'center',
+    },
+    leftActionContainer: {
+      backgroundColor: colors.habitGreen || 'green',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: 120,
+      height: '90%',
+      marginVertical: 10,
+      borderRadius: 8,
+      flexDirection: 'column',
+      alignSelf: 'center',
+    },
+    actionText: {
+      color: colors.white,
+      fontWeight: 'bold',
+      marginTop: 4,
+    },
+  });
+}

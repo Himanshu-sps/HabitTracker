@@ -16,7 +16,6 @@ import {
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
-import AppColors from '@/utils/AppColors';
 import { AppStrings } from '@/utils/AppStrings';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AppLoader from '@/component/AppLoader';
@@ -25,9 +24,11 @@ import { firebaseSignUp } from '@/services/FirebaseService';
 import { useAppDispatch } from '@/redux/hook';
 import { setUserData } from '@/redux/slices/authSlice';
 import AppTextInput from '@/component/AppTextInput';
+import { useTheme } from '@/utils/ThemeContext';
 
 const SignupScreen: React.FC = () => {
-  // use redux toolkit dispatch
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const dispatch = useAppDispatch();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -88,7 +89,7 @@ const SignupScreen: React.FC = () => {
           >
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
-                <FontAwesome name="leaf" size={48} color={AppColors.white} />
+                <FontAwesome name="leaf" size={48} color={colors.white} />
               </View>
             </View>
 
@@ -123,7 +124,7 @@ const SignupScreen: React.FC = () => {
                 label={AppStrings.passwordLabel}
                 iconName="lock-outline"
                 placeholder={AppStrings.passwordPlaceholder}
-                //secureTextEntry={!showPassword}
+                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
                 returnKeyType="next"
@@ -134,7 +135,7 @@ const SignupScreen: React.FC = () => {
                     <MaterialIcons
                       name={showPassword ? 'visibility' : 'visibility-off'}
                       size={22}
-                      color={AppColors.inputPlaceholder}
+                      color={colors.inputPlaceholder}
                     />
                   </TouchableOpacity>
                 }
@@ -143,7 +144,7 @@ const SignupScreen: React.FC = () => {
                 label={'Confirm Password'}
                 iconName="lock-outline"
                 placeholder={'Confirm Password'}
-                //secureTextEntry={!showConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 returnKeyType="done"
@@ -156,7 +157,7 @@ const SignupScreen: React.FC = () => {
                         showConfirmPassword ? 'visibility' : 'visibility-off'
                       }
                       size={22}
-                      color={AppColors.inputPlaceholder}
+                      color={colors.inputPlaceholder}
                     />
                   </TouchableOpacity>
                 }
@@ -187,123 +188,125 @@ const SignupScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: Platform.OS === 'android' ? 40 : 60,
-    marginBottom: 16,
-  },
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: AppColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: AppColors.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  card: {
-    width: '92%',
-    backgroundColor: AppColors.cardBg,
-    borderRadius: 24,
-    padding: 24,
-    alignSelf: 'center',
-    shadowColor: AppColors.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    marginTop: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: AppColors.text,
-    alignSelf: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: AppColors.subtitle,
-    textAlign: 'center',
-    marginBottom: 18,
-  },
-  inputLabelContainer: {
-    marginTop: 8,
-    marginBottom: 2,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: AppColors.text,
-    fontWeight: '500',
-  },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: AppColors.inputBg,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: AppColors.inputBorder,
-  },
-  inputIcon: {
-    marginRight: 6,
-  },
-  input: {
-    flex: 1,
-    height: 48,
-    fontSize: 16,
-    color: AppColors.text,
-    backgroundColor: 'transparent',
-  },
-  button: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 10,
-    shadowColor: AppColors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  buttonText: {
-    color: AppColors.white,
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-  error: {
-    color: AppColors.error,
-    marginBottom: 8,
-    alignSelf: 'center',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  footerText: {
-    color: AppColors.subtitle,
-    fontSize: 14,
-  },
-  signupText: {
-    color: AppColors.primary,
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginLeft: 4,
-  },
-});
+const getStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginTop: Platform.OS === 'android' ? 40 : 60,
+      marginBottom: 16,
+    },
+    logoCircle: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    card: {
+      width: '92%',
+      backgroundColor: colors.cardBg,
+      borderRadius: 24,
+      padding: 24,
+      alignSelf: 'center',
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      marginTop: 8,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.text,
+      alignSelf: 'center',
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: colors.subtitle,
+      textAlign: 'center',
+      marginBottom: 18,
+    },
+    inputLabelContainer: {
+      marginTop: 8,
+      marginBottom: 2,
+    },
+    inputLabel: {
+      fontSize: 14,
+      color: colors.text,
+      fontWeight: '500',
+    },
+    inputWithIcon: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBg,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    inputIcon: {
+      marginRight: 6,
+    },
+    input: {
+      flex: 1,
+      height: 48,
+      fontSize: 16,
+      color: colors.text,
+      backgroundColor: 'transparent',
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 4,
+      marginBottom: 10,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    buttonText: {
+      color: colors.white,
+      fontSize: 17,
+      fontWeight: 'bold',
+    },
+    error: {
+      color: colors.error,
+      marginBottom: 8,
+      alignSelf: 'center',
+      fontWeight: '500',
+      fontSize: 14,
+    },
+    footerContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 8,
+    },
+    footerText: {
+      color: colors.subtitle,
+      fontSize: 14,
+    },
+    signupText: {
+      color: colors.primary,
+      fontWeight: 'bold',
+      fontSize: 14,
+      marginLeft: 4,
+    },
+  });
 
 export default SignupScreen;
