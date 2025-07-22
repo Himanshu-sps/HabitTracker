@@ -18,7 +18,7 @@ const ThemeContext = createContext({
   toggleTheme: () => {},
 });
 
-export const useTheme = () => useContext(ThemeContext);
+export const useAppTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const systemTheme = useColorScheme();

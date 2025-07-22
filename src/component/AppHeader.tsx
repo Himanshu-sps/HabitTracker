@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { goBack } from '@/utils/NavigationUtils';
 
@@ -13,7 +13,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   title,
   showBackButton = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   return (
     <View style={styles.headerContainer}>

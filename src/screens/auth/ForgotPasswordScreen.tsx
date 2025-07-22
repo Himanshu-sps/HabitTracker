@@ -12,10 +12,10 @@ import { resetAndNavigate } from '@/utils/NavigationUtils';
 import { AppStrings } from '@/utils/AppStrings';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AppTextInput from '@/component/AppTextInput';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 
 const ForgotPasswordScreen: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');

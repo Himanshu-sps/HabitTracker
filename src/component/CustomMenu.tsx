@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface MenuItem {
@@ -31,7 +31,7 @@ const CustomMenu: React.FC<CustomMenuProps> = ({
   top,
   right,
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
 
   return (

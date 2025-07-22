@@ -1,31 +1,23 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Switch,
-  Alert,
-} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useAppSelector, useAppDispatch } from '@/redux/hook';
-import { resetUserData } from '@/redux/slices/authSlice';
-import { goBack } from '@/utils/NavigationUtils';
+import { useAppSelector } from '@/redux/hook';
+import { navigate } from '@/utils/NavigationUtils';
 import AppHeader from '@/component/AppHeader';
+import { ScreenRoutes } from '@/utils/screen_routes';
 
 const ProfileScreen = () => {
   const userData = useAppSelector(state => state.authReducer.userData);
-  const { theme, colors, setTheme } = useTheme();
-  const dispatch = useAppDispatch();
+  const { theme, colors, setTheme } = useAppTheme();
 
   const handleThemeChange = (selected: 'light' | 'dark') => {
     setTheme(selected);
   };
 
   const handleViewJournals = () => {
-    // TODO: Navigate to MyJournalsScreen
+    navigate(ScreenRoutes.ViewAllJournalsScreen);
   };
 
   const styles = getStyles(colors);

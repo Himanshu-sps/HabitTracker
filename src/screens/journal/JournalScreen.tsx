@@ -21,13 +21,13 @@ import { AppRootState } from '@/redux/store';
 import { useIsFocused } from '@react-navigation/native';
 import { getJournalEntry } from '@/redux/slices/journalSlice';
 import { moodList } from '@/utils/AppConstants';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const JournalScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const dispatch = useAppDispatch();
@@ -83,7 +83,7 @@ const JournalScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <AppHeader title="Journal" showLeftIcon={false} />
+      <AppHeader title="Journal" showBackButton={false} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -109,7 +109,9 @@ const JournalScreen = () => {
             />
           </View>
 
-          {journalState.error && <Text>{journalState.error}</Text>}
+          {journalState.error && (
+            <Text style={{ color: colors.habitRed }}>{journalState.error}</Text>
+          )}
 
           {journalState.journal && (
             <View style={styles.moodContainer}>
@@ -165,7 +167,6 @@ function getStyles(colors: any) {
     container: {
       flexGrow: 1,
       padding: 16,
-      justifyContent: 'space-between',
     },
     header: {
       textAlign: 'center',

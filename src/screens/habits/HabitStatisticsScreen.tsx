@@ -1,15 +1,8 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ScrollView,
-  Animated,
-} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Animated } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { HabitType } from '@/type';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +14,6 @@ import StreakChallengeCard from '@/component/StreakChallengeCard';
 import { fetchHabitStatistics } from '@/redux/slices/habitStatisticsSlice';
 import * as Progress from 'react-native-progress';
 import { AppRootState } from '@/redux/store';
-import { goBack } from '@/utils/NavigationUtils';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 type ParamList = {
@@ -35,12 +27,12 @@ type HabitStatisticsScreenRouteProp = RouteProp<ParamList, 'HabitStatistics'>;
 const HabitStatisticsScreen = () => {
   const route = useRoute<HabitStatisticsScreenRouteProp>();
   const { habit } = route.params;
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.authReducer.userData);
-  const { loading, completedDates, streaks } = useAppSelector(
+  const { completedDates, streaks } = useAppSelector(
     (state: AppRootState) => state.habitStatistics,
   );
   const [animatedProgress, setAnimatedProgress] = useState(0);

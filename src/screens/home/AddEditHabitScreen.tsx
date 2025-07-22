@@ -8,7 +8,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import AppColors, { HABIT_COLORS } from '@/utils/AppColors';
+import { HABIT_COLORS } from '@/utils/AppColors';
 import AppButton from '@/component/AppButton';
 import { goBack } from '@/utils/NavigationUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,12 +30,12 @@ import {
 } from '@/utils/DateTimeUtils';
 import { navigationRef } from '@/utils/NavigationUtils';
 import { HabitType } from '@/type';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import { updateHabitInFirestore } from '@/services/FirebaseService';
 
 const AddEditHabitScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const habitToEdit = (

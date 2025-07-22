@@ -20,7 +20,7 @@ import {
   deleteHabitsForUser,
 } from '@/services/FirebaseService';
 import { HabitType } from '@/type';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import moment from 'moment';
 import {
@@ -48,7 +48,7 @@ import { resetUserData } from '@/redux/slices/authSlice';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 
 const HomeScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const textStyles = getAppTextStyles(colors);
   const [loading, setLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
@@ -173,9 +173,9 @@ const HomeScreen = () => {
         }
         onDelete={handleDeleteAction}
         onComplete={handleCompleteAction}
-        onStatisticsPress={habit =>
-          navigate(ScreenRoutes.HabitStatisticsScreen, { habit })
-        }
+        onStatisticsPress={habit => {
+          navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
+        }}
       />
     );
   };

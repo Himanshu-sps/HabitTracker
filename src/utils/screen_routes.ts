@@ -1,4 +1,5 @@
 import AuthStack from '@/navigation/AuthStack';
+import ViewAllJournalsScreen from '@/screens/journal/ViewAllJournalsScreen';
 
 export const ScreenRoutes = {
   SplashScreen: 'SplashScreen',
@@ -15,4 +16,6 @@ export const ScreenRoutes = {
   HabitListScreen: 'HabitListScreen',
   ProfileScreen: 'ProfileScreen',
   HabitStatisticsScreen: 'HabitStatisticsScreen',
+  ViewAllJournalsScreen: 'ViewAllJournalsScreen',
+  HabitStack: 'HabitStack',
 };

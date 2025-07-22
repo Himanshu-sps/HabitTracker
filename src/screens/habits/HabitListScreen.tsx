@@ -19,12 +19,12 @@ import { HABIT_COLORS } from '@/utils/AppColors';
 import { useFocusEffect } from '@react-navigation/native';
 import { navigate } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 
 const HabitListScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const user = useAppSelector(
@@ -96,9 +96,9 @@ const HabitListScreen = () => {
           );
         }}
         onComplete={habit => {}}
-        onStatisticsPress={habit =>
-          navigate(ScreenRoutes.HabitStatisticsScreen, { habit })
-        }
+        onStatisticsPress={habit => {
+          navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
+        }}
         enableLeftSwipe={false}
       />
     );
@@ -106,7 +106,7 @@ const HabitListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader title="Habits" showLeftIcon={false} />
+      <AppHeader title="Habits" showBackButton={false} />
       <AppLoader visible={loading} size="large" />
 
       {/* Color Picker */}

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -24,10 +23,10 @@ import { firebaseSignUp } from '@/services/FirebaseService';
 import { useAppDispatch } from '@/redux/hook';
 import { setUserData } from '@/redux/slices/authSlice';
 import AppTextInput from '@/component/AppTextInput';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 
 const SignupScreen: React.FC = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const dispatch = useAppDispatch();
 

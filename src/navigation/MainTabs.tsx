@@ -2,19 +2,34 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeStack from '@/navigation/HomeStack';
 import HistoryScreen from '@/screens/history/HistoryScreen';
-import ProfileScreen from '@/screens/profile/ProfileScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import { ScreenRoutes } from '@/utils/screen_routes';
-import AppColors from '@/utils/AppColors';
-import HabitListScreen from '@/screens/habits/HabitListScreen';
+import HabitStack from '@/navigation/HabitStack';
 import JournalScreen from '@/screens/journal/JournalScreen';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { ViewStyle } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
+const getTabBarStyle = (route: any, colors: any): ViewStyle => {
+  const hiddenRoutes = [
+    'AddEditHabitScreen',
+    'HabitStatisticsScreen',
+    'ProfileScreen',
+    'ViewAllJournalsScreen',
+  ];
+
+  const routeName = getFocusedRouteNameFromRoute(route) ?? '';
+  if (hiddenRoutes.includes(routeName)) {
+    return { display: 'none', backgroundColor: colors.surface };
+  }
+  return { display: 'flex', backgroundColor: colors.surface };
+};
+
 const MainTabs = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
 
   return (
     <Tab.Navigator
@@ -29,23 +44,25 @@ const MainTabs = () => {
       <Tab.Screen
         name={ScreenRoutes.HomeStack}
         component={HomeStack}
-        options={{
+        options={({ route }) => ({
           tabBarIcon: ({ color }) => (
             <Icon name="home" color={color} size={24} />
           ),
           title: 'Home',
-        }}
+          tabBarStyle: getTabBarStyle(route, colors),
+        })}
       />
 
       <Tab.Screen
-        name={ScreenRoutes.HabitListScreen}
-        component={HabitListScreen}
-        options={{
+        name={ScreenRoutes.HabitStack}
+        component={HabitStack}
+        options={({ route }) => ({
           tabBarIcon: ({ color }) => (
             <FontAwesomeIcon name="leaf" color={color} size={24} />
           ),
           title: 'Habits',
-        }}
+          tabBarStyle: getTabBarStyle(route, colors),
+        })}
       />
 
       <Tab.Screen

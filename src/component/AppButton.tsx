@@ -6,7 +6,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 
 interface AppButtonProps {
   title: string;
@@ -23,7 +23,7 @@ const AppButton: React.FC<AppButtonProps> = ({
   textStyle,
   disabled = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   return (
     <TouchableOpacity

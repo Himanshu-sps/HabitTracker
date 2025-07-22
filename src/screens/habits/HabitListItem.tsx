@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { HabitType } from '@/type';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppSpacer from '@/component/AppSpacer';
 import {
@@ -44,7 +44,7 @@ const HabitListItem = forwardRef<any, Props>(
     },
     ref,
   ) => {
-    const { colors } = useTheme();
+    const { colors } = useAppTheme();
     const styles = getStyles(colors);
     const textStyles = getAppTextStyles(colors);
     const swipeableRef = useRef<any>(null);

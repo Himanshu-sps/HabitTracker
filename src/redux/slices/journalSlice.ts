@@ -1,26 +1,30 @@
 import {
   createSlice,
-  PayloadAction,
   createAsyncThunk,
   ActionReducerMapBuilder,
 } from '@reduxjs/toolkit';
 import { analyzeSentiment } from '@/services/AIServices';
 import { BaseResponseType, MoodType, SentimentResult } from '@/type';
-import { saveJournalEntry } from '@/services/FirebaseService';
+import {
+  fetchAllJournalsForUser,
+  saveJournalEntry,
+  deleteJournalEntry,
+} from '@/services/FirebaseService';
 import { JournalType } from '@/type';
 import { fetchJournalEntry } from '@/services/FirebaseService';
-import { moodList } from '@/utils/AppConstants';
 
 //Step:1
 interface JournalState {
   journal: JournalType | null;
   error: string | null;
+  allJournals: JournalType[] | [];
 }
 
 //Step:2
 const initialState: JournalState = {
   journal: null,
   error: null,
+  allJournals: [],
 };
 
 //Step:3
@@ -33,6 +37,8 @@ const journalSlice = createSlice({
   extraReducers: builder => {
     handleSentimentAnalysis(builder);
     handleFetchJournal(builder);
+    handleFetchAllJournals(builder);
+    handleDeleteJournal(builder);
   },
 });
 
@@ -83,6 +89,22 @@ export const getJournalEntry = createAsyncThunk(
   },
 );
 
+export const fetchAllJournalsByUserId = createAsyncThunk(
+  'journal/fetchAllJournalsByUserId',
+  async (userId: string) => {
+    const journals = await fetchAllJournalsForUser(userId);
+    return journals;
+  },
+);
+
+export const deleteJournalById = createAsyncThunk(
+  'journal/deleteJournalById',
+  async ({ userId, journalId }: { userId: string; journalId: string }) => {
+    const response = await deleteJournalEntry(userId, journalId);
+    return { journalId, ...response };
+  },
+);
+
 // Step:5
 const handleSentimentAnalysis = (
   builder: ActionReducerMapBuilder<JournalState>,
@@ -116,6 +138,44 @@ const handleFetchJournal = (builder: ActionReducerMapBuilder<JournalState>) => {
     .addCase(getJournalEntry.rejected, (state, action) => {
       state.error = action.error.message || 'Failed to fetch journal entry';
       state.journal = null;
+    });
+};
+
+const handleFetchAllJournals = (
+  builder: ActionReducerMapBuilder<JournalState>,
+) => {
+  builder
+    .addCase(fetchAllJournalsByUserId.pending, (state, action) => {
+      (state.allJournals = []), (state.error = null);
+    })
+    .addCase(fetchAllJournalsByUserId.fulfilled, (state, action) => {
+      if (action.payload.success && action.payload.data) {
+        state.allJournals = action.payload.data;
+      } else {
+        state.error = action.payload.msg || 'Failed to fetch all Journals';
+      }
+    })
+    .addCase(fetchAllJournalsByUserId.rejected, (state, action) => {
+      state.error = action.error.message || 'Failed to fetch all journals';
+      state.allJournals = [];
+    });
+};
+
+const handleDeleteJournal = (
+  builder: ActionReducerMapBuilder<JournalState>,
+) => {
+  builder
+    .addCase(deleteJournalById.fulfilled, (state, action) => {
+      if (action.payload.success) {
+        state.allJournals = state.allJournals.filter(
+          j => j.id !== action.payload.journalId,
+        );
+      } else {
+        state.error = action.payload.msg || 'Failed to delete journal';
+      }
+    })
+    .addCase(deleteJournalById.rejected, (state, action) => {
+      state.error = action.error.message || 'Failed to delete journal';
     });
 };
 

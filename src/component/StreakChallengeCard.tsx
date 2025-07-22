@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface StreakChallengeCardProps {
@@ -18,7 +18,7 @@ const StreakChallengeCard: React.FC<StreakChallengeCardProps> = ({
   isCompleted,
   isDisabled,
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
 
   return (

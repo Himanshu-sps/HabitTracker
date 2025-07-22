@@ -342,3 +342,31 @@ export const fetchJournalsForUserInRange = async (
     return { success: false, msg: error.message || 'Failed to fetch journals' };
   }
 };
+
+export const fetchAllJournalsForUser = async (
+  userId: string,
+): Promise<BaseResponseType<JournalType[]>> => {
+  try {
+    const snapshot = await journalsCollection
+      .where('userId', '==', userId)
+      .orderBy('journalDate', 'desc')
+      .get();
+
+    const journals = snapshot.docs.map(
+      doc => ({ id: doc.id, ...doc.data() } as JournalType),
+    );
+
+    return { success: true, data: journals };
+  } catch (error: any) {
+    return { success: false, msg: error.message || 'Failed to fetch journals' };
+  }
+};
+
+export const deleteJournalEntry = async (userId: string, journalId: string) => {
+  try {
+    await journalsCollection.doc(journalId).delete();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, msg: error.message || 'Delete failed' };
+  }
+};

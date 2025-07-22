@@ -2,13 +2,13 @@ import { View, Text, StatusBar, Platform, StyleSheet } from 'react-native';
 import React, { useEffect } from 'react';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import { useAppSelector } from '@/redux/hook';
 
 const SplashScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const user = useAppSelector(state => state.authReducer.userData);
