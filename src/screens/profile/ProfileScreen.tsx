@@ -11,10 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/utils/ThemeContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
-import { firebaseLogout } from '@/services/FirebaseService';
 import { resetUserData } from '@/redux/slices/authSlice';
-import { resetAndNavigate } from '@/utils/NavigationUtils';
-import { ScreenRoutes } from '@/utils/screen_routes';
+import { goBack } from '@/utils/NavigationUtils';
+import AppHeader from '@/component/AppHeader';
 
 const ProfileScreen = () => {
   const userData = useAppSelector(state => state.authReducer.userData);
@@ -29,21 +28,11 @@ const ProfileScreen = () => {
     // TODO: Navigate to MyJournalsScreen
   };
 
-  const handleLogout = async () => {
-    const res = await firebaseLogout();
-    if (res.success) {
-      dispatch(resetUserData());
-      resetAndNavigate(ScreenRoutes.AuthStack);
-    } else {
-      Alert.alert('Logout Failed', res.msg || 'Please try again.');
-    }
-  };
-
   const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+      <AppHeader title="Profile" showBackButton />
       <View style={styles.avatarWrapper}>
         <View style={styles.avatarCircle}>
           <Icon name="account" size={90} color={colors.white} />
@@ -112,10 +101,6 @@ const ProfileScreen = () => {
           <Icon name="chevron-right" size={26} color={colors.text} />
         </TouchableOpacity>
       </View>
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -125,19 +110,13 @@ function getStyles(colors: any) {
     container: {
       flex: 1,
       backgroundColor: colors.surface,
-      alignItems: 'center',
-      paddingTop: 36,
     },
-    title: {
-      fontSize: 22,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: 18,
-      letterSpacing: 0.2,
+    backButton: {
+      padding: 8,
     },
     avatarWrapper: {
       alignItems: 'center',
-      marginBottom: 18,
+      margin: 18,
     },
     avatarCircle: {
       width: 130,

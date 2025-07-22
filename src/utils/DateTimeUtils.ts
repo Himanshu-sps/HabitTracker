@@ -23,6 +23,12 @@ export function formatDate(
   return moment(date).format(outputFormat);
 }
 
+export function getDaysDifference(startDate: string, endDate: string): number {
+  const start = moment(startDate, DATE_FORMAT_ZERO);
+  const end = moment(endDate, DATE_FORMAT_ZERO);
+  return end.diff(start, 'days');
+}
+
 /**
  * Convert a date string to a UTC ISO string.
  * @param date - The date to convert (string or Date)

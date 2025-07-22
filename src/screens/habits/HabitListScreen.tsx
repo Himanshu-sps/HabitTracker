@@ -95,12 +95,10 @@ const HabitListScreen = () => {
             'Cancel',
           );
         }}
-        onComplete={habit => {
-          showInfoAlert(
-            'Info',
-            'Completion is only tracked for today in the Home screen.',
-          );
-        }}
+        onComplete={habit => {}}
+        onStatisticsPress={habit =>
+          navigate(ScreenRoutes.HabitStatisticsScreen, { habit })
+        }
         enableLeftSwipe={false}
       />
     );

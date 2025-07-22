@@ -41,6 +41,11 @@ import { fetchMotivation } from '@/redux/slices/motivationSlice';
 import * as Progress from 'react-native-progress';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomMenu from '@/component/CustomMenu';
+import { useDispatch } from 'react-redux';
+import { firebaseLogout } from '@/services/FirebaseService';
+import { resetUserData } from '@/redux/slices/authSlice';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
 
 const HomeScreen = () => {
   const { colors } = useTheme();
@@ -48,6 +53,10 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [activeTodayCount, setActiveTodayCount] = useState(0);
+  const [refreshId, setRefreshId] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const avatarRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, insets);
 
@@ -60,6 +69,28 @@ const HomeScreen = () => {
   );
 
   const dispatch = useAppDispatch();
+  const rdxDispatch = useDispatch();
+
+  const handleLogout = async () => {
+    const res = await firebaseLogout();
+    if (res.success) {
+      rdxDispatch(resetUserData());
+      resetAndNavigate(ScreenRoutes.AuthStack);
+    }
+  };
+
+  const menuItems = [
+    {
+      title: 'My Profile',
+      onPress: () => navigate(ScreenRoutes.ProfileScreen),
+      icon: 'person',
+    },
+    {
+      title: 'Logout',
+      onPress: handleLogout,
+      icon: 'logout',
+    },
+  ];
   const swipeableRefs = useRef<{ [key: string]: any }>({});
   const motivation = useAppSelector(
     (state: AppRootState) => state.motivation.motivationMessage,
@@ -98,7 +129,7 @@ const HomeScreen = () => {
       },
     );
     return () => unsubscribeHabits();
-  }, [user?.id, dispatch]);
+  }, [user?.id, dispatch, refreshId]);
 
   useEffect(() => {
     dispatch(fetchMotivation());
@@ -126,6 +157,7 @@ const HomeScreen = () => {
     if (!user?.id || !habit.id) return;
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
     await trackHabitCompletion(user.id, habit.id, today);
+    setRefreshId(prev => prev + 1);
   };
 
   const renderItem: ListRenderItem<HabitType> = ({ item }) => {
@@ -141,6 +173,9 @@ const HomeScreen = () => {
         }
         onDelete={handleDeleteAction}
         onComplete={handleCompleteAction}
+        onStatisticsPress={habit =>
+          navigate(ScreenRoutes.HabitStatisticsScreen, { habit })
+        }
       />
     );
   };
@@ -162,8 +197,39 @@ const HomeScreen = () => {
     return <Icon name="trophy-award" size={28} color={'#FFD700'} />;
   };
 
+  const renderEmptyComponent = () => {
+    if (activeTodayCount > 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Icon name="party-popper" size={50} color={colors.primary} />
+          <Text style={styles.emptyStateTitle}>You're all done!</Text>
+          <Text style={styles.emptyStateSubtitle}>
+            All your habits for today are complete. Keep it up!
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyStateContainer}>
+        <Icon name="calendar-blank-outline" size={50} color={colors.subtitle} />
+        <Text style={styles.emptyStateTitle}>A fresh start</Text>
+        <Text style={styles.emptyStateSubtitle}>
+          You don't have any habits scheduled for today.
+        </Text>
+        <TouchableOpacity
+          style={styles.emptyStateButton}
+          onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
+        >
+          <Text style={styles.emptyStateButtonText}>Create a Habit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <AppLoader visible={loading} />
       <View style={styles.headerContainer}>
         <View style={styles.greetingRow}>
           <View>
@@ -173,15 +239,32 @@ const HomeScreen = () => {
             </Text>
           </View>
           <TouchableOpacity
+            ref={avatarRef}
             style={styles.avatarCircle}
-            onPress={() => navigate(ScreenRoutes.ProfileScreen)}
+            onPress={() => {
+              avatarRef.current?.measure(
+                (
+                  fx: number,
+                  fy: number,
+                  width: number,
+                  height: number,
+                  px: number,
+                  py: number,
+                ) => {
+                  setMenuPosition({
+                    top: py + height + 8,
+                    right: 20,
+                  });
+                  setMenuVisible(true);
+                },
+              );
+            }}
           >
             <Icon name="account" size={48} color={colors.white} />
           </TouchableOpacity>
         </View>
       </View>
       <FlatList
-        style={{ marginTop: 20 }}
         data={todaysHabits}
         keyExtractor={(item: HabitType, index: number) =>
           (item.id || item.userId.toString()) + index.toString()
@@ -189,6 +272,7 @@ const HomeScreen = () => {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmptyComponent}
         ListHeaderComponent={
           <>
             <View style={styles.progressCard}>
@@ -226,18 +310,28 @@ const HomeScreen = () => {
             </View>
 
             <AppSpacer vertical={24} />
-
-            <Text style={textStyles.subtitle}>Today's Habits</Text>
+            {activeTodayCount > 0 && (
+              <Text style={textStyles.subtitle}>Today's Habits</Text>
+            )}
           </>
         }
       />
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.7}
-        onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
-      >
-        <MaterialIcons name="add" size={32} color={colors.white} />
-      </TouchableOpacity>
+      {activeTodayCount > 0 && (
+        <TouchableOpacity
+          style={styles.fab}
+          activeOpacity={0.7}
+          onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
+        >
+          <MaterialIcons name="add" size={32} color={colors.white} />
+        </TouchableOpacity>
+      )}
+      <CustomMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        menuItems={menuItems}
+        top={menuPosition.top}
+        right={menuPosition.right}
+      />
     </View>
   );
 };
@@ -254,14 +348,9 @@ function getStyles(colors: any, insets: any) {
       backgroundColor: colors.primary,
       paddingHorizontal: 16,
       paddingTop: insets.top + 8,
-      paddingBottom: 60,
+      paddingBottom: 20,
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 0,
     },
     greetingRow: {
       flexDirection: 'row',
@@ -283,7 +372,7 @@ function getStyles(colors: any, insets: any) {
       opacity: 0.8,
     },
     listContent: {
-      paddingTop: insets.top + 90, // Header height + overlap
+      marginTop: 30,
       paddingHorizontal: 16,
       paddingBottom: 32,
     },
@@ -355,6 +444,38 @@ function getStyles(colors: any, insets: any) {
       fontSize: 14,
       fontWeight: 'bold',
       color: colors.text,
+    },
+    emptyStateContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+      marginTop: 20,
+    },
+    emptyStateTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 16,
+      textAlign: 'center',
+    },
+    emptyStateSubtitle: {
+      fontSize: 16,
+      color: colors.subtitle,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+    emptyStateButton: {
+      marginTop: 24,
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 32,
+      borderRadius: 25,
+    },
+    emptyStateButtonText: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: 'bold',
     },
   });
 }

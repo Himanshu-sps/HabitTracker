@@ -35,10 +35,8 @@ const HistoryScreen = () => {
     (state: AppRootState) => state.history,
   );
   const isFocused = useIsFocused();
-  const yAxisSegment =
-    chartData.data.filter(x => x > 0).length > 0
-      ? chartData.data.filter(x => x > 0).length
-      : 1;
+  const maxValue = Math.max(...chartData.data, 1);
+  const yAxisSegment = maxValue;
 
   useEffect(() => {
     if (isFocused && user?.id) {
@@ -48,7 +46,7 @@ const HistoryScreen = () => {
 
   return (
     <SafeAreaView style={styles.screenBg}>
-      <AppHeader title="History" showLeftIcon={false} />
+      <AppHeader title="History" showBackButton={false} />
       <FlatList
         data={timelineData}
         keyExtractor={item => item.date}

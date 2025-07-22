@@ -60,17 +60,6 @@ const MainTabs = () => {
       />
 
       <Tab.Screen
-        name={ScreenRoutes.ProfileScreen}
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <Icon name="person" color={color} size={24} />
-          ),
-          title: 'Profile',
-        }}
-      />
-
-      <Tab.Screen
         name={ScreenRoutes.JournalScreen}
         component={JournalScreen}
         options={{

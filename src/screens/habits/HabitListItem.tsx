@@ -1,5 +1,11 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useRef, forwardRef, useImperativeHandle } from 'react';
+import React, {
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+  useState,
+} from 'react';
 import { HabitType } from '@/type';
 import { useTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
@@ -7,16 +13,20 @@ import AppSpacer from '@/component/AppSpacer';
 import {
   DATE_FORMAT_DISPLAY,
   formatDate,
+  getDaysDifference,
   TIME_FORMAT_DISPLAY,
 } from '@/utils/DateTimeUtils';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { getHabitStreaks } from '@/services/FirebaseService';
+import { useAppSelector } from '@/redux/hook';
 
 interface Props {
   habit: HabitType;
   onPress: () => void;
   onDelete: (habit: HabitType, closeSwipeable: () => void) => void;
   onComplete: (habit: HabitType) => void;
+  onStatisticsPress: (habit: HabitType) => void;
   enableLeftSwipe?: boolean;
   enableRightSwipe?: boolean;
 }
@@ -28,6 +38,7 @@ const HabitListItem = forwardRef<any, Props>(
       onPress,
       onDelete,
       onComplete,
+      onStatisticsPress,
       enableLeftSwipe = true,
       enableRightSwipe = true,
     },
@@ -37,6 +48,20 @@ const HabitListItem = forwardRef<any, Props>(
     const styles = getStyles(colors);
     const textStyles = getAppTextStyles(colors);
     const swipeableRef = useRef<any>(null);
+    const [streaks, setStreaks] = useState({
+      currentStreak: 0,
+      bestStreak: 0,
+      completedDays: 0,
+    });
+    const user = useAppSelector(state => state.authReducer.userData);
+
+    useEffect(() => {
+      if (user?.id && habit.id) {
+        getHabitStreaks(user.id, habit.id).then(setStreaks);
+      }
+    }, [user?.id, habit.id]);
+
+    const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
 
     useImperativeHandle(ref, () => ({
       close: () => swipeableRef.current?.close(),
@@ -83,7 +108,11 @@ const HabitListItem = forwardRef<any, Props>(
                 { backgroundColor: habit.color },
               ]}
             >
-              <Text style={[textStyles.body, styles.habit]}>{habit.name}</Text>
+              <View style={styles.habitHeader}>
+                <Text style={[textStyles.body, styles.habit]}>
+                  {habit.name}
+                </Text>
+              </View>
 
               <AppSpacer vertical={8} />
 
@@ -107,21 +136,53 @@ const HabitListItem = forwardRef<any, Props>(
                 {formatDate(habit.endDate, DATE_FORMAT_DISPLAY)}
               </Text>
             </View>
-
-            {/* Reminder Time */}
-            {habit.reminderTime ? (
-              <View style={styles.dateRow}>
-                <MaterialIcons
-                  name="alarm"
-                  size={18}
-                  color={colors.primary}
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={textStyles.label}>
-                  {formatDate(habit.reminderTime, TIME_FORMAT_DISPLAY)}
-                </Text>
+            <View style={[styles.dateRow, styles.footerContainer]}>
+              {/* Left: Reminder */}
+              <View style={styles.footerInfo}>
+                {habit.reminderTime && (
+                  <>
+                    <MaterialIcons
+                      name="alarm"
+                      size={18}
+                      color={colors.primary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={textStyles.label}>
+                      {formatDate(habit.reminderTime, TIME_FORMAT_DISPLAY)}
+                    </Text>
+                  </>
+                )}
               </View>
-            ) : null}
+
+              {/* Right: Actions */}
+              <View style={styles.footerActions}>
+                <View
+                  style={[
+                    styles.streakContainer,
+                    { backgroundColor: habit.color },
+                  ]}
+                >
+                  <MaterialIcons name="star" size={18} color={colors.white} />
+                  <Text style={styles.streakText}>{streaks.currentStreak}</Text>
+                  <View style={styles.divider} />
+                  <MaterialIcons
+                    name="bookmark"
+                    size={18}
+                    color={colors.white}
+                  />
+                  <Text style={styles.streakText}>
+                    {streaks.completedDays}/{totalDays}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => onStatisticsPress(habit)}>
+                  <MaterialIcons
+                    name="insert-chart-outlined"
+                    size={24}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       </Swipeable>
@@ -152,12 +213,36 @@ function getStyles(colors: any) {
       borderBottomEndRadius: 0,
       padding: 8,
     },
+    habitHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
     habit: {
       color: colors.white,
+      flex: 1,
     },
     habitDesc: {
       color: colors.white,
       fontWeight: 'bold',
+    },
+    streakContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
+    streakText: {
+      color: colors.white,
+      fontWeight: 'bold',
+      marginLeft: 4,
+    },
+    divider: {
+      width: 1,
+      height: '80%',
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+      marginHorizontal: 8,
     },
     dateRow: {
       width: '100%',
@@ -166,6 +251,18 @@ function getStyles(colors: any) {
       borderRadius: 8,
       paddingHorizontal: 8,
       marginBottom: 14,
+    },
+    footerContainer: {
+      justifyContent: 'space-between',
+    },
+    footerInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    footerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
     },
     rightActionContainer: {
       backgroundColor: colors.habitRed || 'red',
