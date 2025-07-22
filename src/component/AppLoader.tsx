@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  View,
-  Dimensions,
-  Text,
-} from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { ActivityIndicator, Modal, StyleSheet, View, Text } from 'react-native';
+import { useAppTheme } from '@/utils/ThemeContext';
 
 interface AppLoaderProps {
   visible: boolean;
@@ -20,7 +13,7 @@ const AppLoader: React.FC<AppLoaderProps> = ({
   color,
   size = 'large',
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   return (
     <Modal transparent visible={visible} animationType="fade">

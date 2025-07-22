@@ -7,7 +7,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 
 interface AppTextInputProps extends TextInputProps {
   label: string;
@@ -24,7 +24,7 @@ const AppTextInput: React.FC<AppTextInputProps> = ({
   style,
   ...props
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   // Calculate minHeight for multiline
   const inputStyle = [

@@ -1,57 +1,56 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { goBack } from '@/utils/NavigationUtils';
 
 interface AppHeaderProps {
   title: string;
-  onClose?: () => void;
-  showLeftIcon?: boolean;
+  showBackButton?: boolean;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
   title,
-  onClose,
-  showLeftIcon = true,
+  showBackButton = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   return (
-    <View style={styles.headerRow}>
-      {showLeftIcon ? (
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-          <MaterialIcons name="close" size={28} color={colors.text} />
+    <View style={styles.headerContainer}>
+      {showBackButton ? (
+        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+          <MaterialIcons name="chevron-left" size={32} color={colors.text} />
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 32 }} />
+        <View style={styles.placeholder} />
       )}
       <Text style={styles.headerTitle}>{title}</Text>
-      <View style={{ width: 24 }} />
+      <View style={styles.placeholder} />
     </View>
   );
 };
 
 function getStyles(colors: any) {
   return StyleSheet.create({
-    headerRow: {
+    headerContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 16,
-      marginTop: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.inputBorder,
     },
-    closeBtn: {
-      width: 32,
-      height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
+    backButton: {
+      padding: 8,
     },
     headerTitle: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: 'bold',
       color: colors.text,
-      textAlign: 'center',
-      flex: 1,
+    },
+    placeholder: {
+      width: 48,
     },
   });
 }

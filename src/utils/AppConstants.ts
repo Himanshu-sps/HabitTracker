@@ -37,3 +37,31 @@ export const moodList: MoodType[] = [
 ];
 
 export const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export const STREAK_CHALLENGES = [
+  {
+    days: 1,
+    badge: '🥉',
+    description: 'Complete a habit for 1 day.',
+  },
+  {
+    days: 7,
+    badge: '🥈',
+    description: 'Complete a habit for 7 days in a row.',
+  },
+  {
+    days: 15,
+    badge: '🥇',
+    description: 'Complete a habit for 15 days in a row.',
+  },
+  {
+    days: 30,
+    badge: '🏆',
+    description: 'Complete a habit for 30 days in a row.',
+  },
+  {
+    days: 60,
+    badge: '💎',
+    description: 'Complete a habit for 60 days in a row.',
+  },
+];

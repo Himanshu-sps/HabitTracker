@@ -10,7 +10,7 @@ import React, { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppLoader from '@/component/AppLoader';
 import { BarChart } from 'react-native-chart-kit';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { AppRootState } from '@/redux/store';
@@ -24,7 +24,7 @@ import { fetchHistoryData } from '@/redux/slices/historySlice';
 import { daysOfWeek } from '@/utils/AppConstants';
 
 const HistoryScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const dispatch = useAppDispatch();
@@ -35,10 +35,8 @@ const HistoryScreen = () => {
     (state: AppRootState) => state.history,
   );
   const isFocused = useIsFocused();
-  const yAxisSegment =
-    chartData.data.filter(x => x > 0).length > 0
-      ? chartData.data.filter(x => x > 0).length
-      : 1;
+  const maxValue = Math.max(...chartData.data, 1);
+  const yAxisSegment = maxValue;
 
   useEffect(() => {
     if (isFocused && user?.id) {
@@ -48,7 +46,7 @@ const HistoryScreen = () => {
 
   return (
     <SafeAreaView style={styles.screenBg}>
-      <AppHeader title="History" showLeftIcon={false} />
+      <AppHeader title="History" showBackButton={false} />
       <FlatList
         data={timelineData}
         keyExtractor={item => item.date}

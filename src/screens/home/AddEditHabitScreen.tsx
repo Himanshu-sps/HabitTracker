@@ -8,7 +8,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import AppColors, { HABIT_COLORS } from '@/utils/AppColors';
+import { HABIT_COLORS } from '@/utils/AppColors';
 import AppButton from '@/component/AppButton';
 import { goBack } from '@/utils/NavigationUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,11 +30,12 @@ import {
 } from '@/utils/DateTimeUtils';
 import { navigationRef } from '@/utils/NavigationUtils';
 import { HabitType } from '@/type';
-import { useTheme } from '@/utils/ThemeContext';
+import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
+import { updateHabitInFirestore } from '@/services/FirebaseService';
 
 const AddEditHabitScreen = () => {
-  const { colors } = useTheme();
+  const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const habitToEdit = (
@@ -116,42 +117,36 @@ const AddEditHabitScreen = () => {
     }
     setLoading(true);
 
-    // Prepare date-only values for API with zero timestamp
-    const startDateFormatted = formatDate(
-      startDate,
-      DATE_FORMAT_ZERO,
-      DATE_FORMAT_DISPLAY,
-    );
-
-    const endDateFormatted = formatDate(
-      endDate,
-      DATE_FORMAT_ZERO,
-      DATE_FORMAT_DISPLAY,
-    );
-
-    // Combining time with startdate to make UTC date time
-    const reminderTimeUTC =
-      reminderTime && startDate
-        ? toUTCTimeString(
-            startDate,
-            reminderTime,
-            DATE_FORMAT_DISPLAY,
-            TIME_FORMAT_DISPLAY,
-          )
-        : '';
-
-    const habit = {
+    const habitData = {
       userId: user.id,
       name: habitName.trim(),
       description: habitDesc.trim(),
       color: selectedColor,
-      startDate: startDateFormatted, // Date-only string (YYYY-MM-DD)
-      endDate: endDateFormatted, // Date-only string (YYYY-MM-DD)
+      startDate: formatDate(startDate, DATE_FORMAT_ZERO, DATE_FORMAT_DISPLAY),
+      endDate: formatDate(endDate, DATE_FORMAT_ZERO, DATE_FORMAT_DISPLAY),
       reminderEnabled,
-      reminderTime: reminderTimeUTC, // UTC ISO string (date+time)
+      reminderTime:
+        reminderTime && startDate
+          ? toUTCTimeString(
+              startDate,
+              reminderTime,
+              DATE_FORMAT_DISPLAY,
+              TIME_FORMAT_DISPLAY,
+            )
+          : '',
     };
 
-    const res = await addHabitToFirestore(habit);
+    let res;
+    if (habitToEdit) {
+      res = await updateHabitInFirestore({
+        ...habitData,
+        id: habitToEdit.id,
+        createdAt: habitToEdit.createdAt,
+      });
+    } else {
+      res = await addHabitToFirestore(habitData);
+    }
+
     setLoading(false);
     if (res.success) {
       goBack();
@@ -162,7 +157,10 @@ const AddEditHabitScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader title="New Habit" onClose={goBack} />
+      <AppHeader
+        title={habitToEdit ? 'Edit Habit' : 'New Habit'}
+        showBackButton
+      />
 
       <View style={{ flex: 1 }}>
         <ScrollView

@@ -1,13 +1,18 @@
 import { UserDataType, BaseResponseType, HabitType, JournalType } from '@/type';
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import moment from 'moment';
+
+const usersCollection = firestore().collection('users');
+const habitsCollection = firestore().collection('habits');
+const journalsCollection = firestore().collection('journals');
+
+// ========================================================================
+// AUTHENTICATION
+// ========================================================================
 
 /**
- *
- * @param name
- * @param email
- * @param password
- * @returns
+ * Creates a new user with email and password and stores user data in Firestore.
  */
 export const firebaseSignUp = async (
   name: string,
@@ -19,210 +24,127 @@ export const firebaseSignUp = async (
       email,
       password,
     );
-
-    // make user object
     const userData: UserDataType = {
-      id: response?.user?.uid,
-      name: name,
-      email: email,
+      id: response.user.uid,
+      name,
+      email,
     };
-
-    // store in the collection
-    await firestore()
-      .collection('users')
-      .doc(response?.user?.uid)
-      .set(userData);
-
-    return {
-      success: true,
-      data: userData,
-      msg: 'data stored successfully',
-    };
+    await usersCollection.doc(response.user.uid).set(userData);
+    return { success: true, data: userData, msg: 'User created successfully' };
   } catch (error: any) {
-    let msg = 'Something went wrong';
-    // Use error.code for robust error handling
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        msg = 'Email already registered';
-        break;
-      case 'auth/invalid-email':
-        msg = 'Invalid email';
-        break;
-      case 'auth/network-request-failed':
-        msg = 'Network error, please try again';
-        break;
-      // Add more cases as needed
-      default:
-        if (error.message) msg = error.message;
-        break;
-    }
-
-    return {
-      success: false,
-      msg: msg,
-    };
+    const msg =
+      error.code === 'auth/email-already-in-use'
+        ? 'Email already registered'
+        : error.message;
+    return { success: false, msg };
   }
 };
 
 /**
- *
- * @param email
- * @param password
- * @returns
+ * Signs in a user with email and password.
  */
 export const firebaseLogin = async (
   email: string,
   password: string,
 ): Promise<BaseResponseType> => {
   try {
-    const response = await getAuth().signInWithEmailAndPassword(
-      email,
-      password,
-    );
-
-    return {
-      success: true,
-      msg: 'logged in successfully',
-    };
+    await getAuth().signInWithEmailAndPassword(email, password);
+    return { success: true, msg: 'Logged in successfully' };
   } catch (error: any) {
-    let msg = 'Something went wrong';
-    // Use error.code for robust error handling
-    switch (error.code) {
-      case 'auth/invalid-credential':
-        msg = 'Invalid credentials';
-        break;
-      case 'auth/network-request-failed':
-        msg = 'Network error, please try again';
-        break;
-      // Add more cases as needed
-      default:
-        if (error.message) msg = error.message;
-        break;
-    }
-
-    return {
-      success: false,
-      msg: msg,
-    };
+    const msg =
+      error.code === 'auth/invalid-credential'
+        ? 'Invalid credentials'
+        : error.message;
+    return { success: false, msg };
   }
 };
 
 /**
- * Logs out the current user from Firebase Auth.
- * @returns {Promise<BaseResponseType>} Success or error response
+ * Logs out the current user.
  */
 export const firebaseLogout = async (): Promise<BaseResponseType> => {
   try {
     await getAuth().signOut();
-    return {
-      success: true,
-      msg: 'Logged out successfully',
-    };
+    return { success: true, msg: 'Logged out successfully' };
   } catch (error: any) {
-    let msg = 'Something went wrong';
-    switch (error.code) {
-      case 'auth/network-request-failed':
-        msg = 'Network error, please try again';
-        break;
-      default:
-        if (error.message) msg = error.message;
-        break;
-    }
-    return {
-      success: false,
-      msg: msg,
-    };
+    return { success: false, msg: error.message || 'Logout failed' };
   }
 };
 
+// ========================================================================
+// HABITS
+// ========================================================================
+
 /**
- * Adds a new habit to Firestore for the current user.
- * @param habit HabitType (without id/createdAt, those will be set here)
- * @returns BaseResponseType
+ * A reusable query for fetching habits for a user.
+ */
+const getHabitsQuery = (userId: string) =>
+  habitsCollection.where('userId', '==', userId).orderBy('createdAt', 'desc');
+
+/**
+ * Adds a new habit to Firestore.
  */
 export const addHabitToFirestore = async (
   habit: Omit<HabitType, 'id' | 'createdAt'>,
 ): Promise<BaseResponseType> => {
   try {
-    const docRef = await firestore()
-      .collection('habits')
-      .add({
-        ...habit,
-        createdAt: new Date().toISOString(),
-      });
+    const docRef = await habitsCollection.add({
+      ...habit,
+      createdAt: new Date().toISOString(),
+    });
     return {
       success: true,
       data: { ...habit, id: docRef.id, createdAt: new Date().toISOString() },
       msg: 'Habit added successfully',
     };
   } catch (error: any) {
-    return {
-      success: false,
-      msg: error.message || 'Failed to add habit',
-    };
+    return { success: false, msg: error.message || 'Failed to add habit' };
   }
 };
 
 /**
- * Fetches all habits for a given userId from Firestore.
- * @param userId The user's unique ID
- * @returns BaseResponseType with an array of HabitType
+ * Updates an existing habit in Firestore.
  */
-export const fetchHabitsForUser = async (
-  userId: string,
-): Promise<BaseResponseType<HabitType[]>> => {
+export const updateHabitInFirestore = async (
+  habit: HabitType,
+): Promise<BaseResponseType> => {
   try {
-    const snapshot = await firestore()
-      .collection('habits')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .get();
-    const habits: HabitType[] = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as Omit<HabitType, 'id'>),
-    }));
-    return {
-      success: true,
-      data: habits,
-    };
+    if (!habit.id) throw new Error('Habit ID is missing');
+    await habitsCollection.doc(habit.id).update(habit);
+    return { success: true, msg: 'Habit updated successfully' };
   } catch (error: any) {
-    return {
-      success: false,
-      msg: error.message || 'Failed to fetch habits',
-    };
+    return { success: false, msg: error.message || 'Failed to update habit' };
   }
 };
 
 /**
- * Subscribes to real-time updates for all habits for a given userId from Firestore.
- * @param userId The user's unique ID
- * @param onUpdate Callback to receive the updated array of HabitType
- * @returns Unsubscribe function
+ * Subscribes to real-time updates for a user's habits.
  */
 export const subscribeToHabitsForUser = (
   userId: string,
   onUpdate: (habits: HabitType[]) => void,
 ) => {
-  return firestore()
-    .collection('habits')
-    .where('userId', '==', userId)
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(snapshot => {
-      const habits = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as Omit<HabitType, 'id'>),
-      }));
-      onUpdate(habits);
-    });
+  const query = getHabitsQuery(userId);
+  return query.onSnapshot(snapshot => {
+    const habits = snapshot.docs.map(
+      doc => ({ id: doc.id, ...doc.data() } as HabitType),
+    );
+    onUpdate(habits);
+  });
 };
+
+// ========================================================================
+// HABIT COMPLETION & STREAKS
+// ========================================================================
+
+/**
+ * Gets the sub-collection of completed habits for a user.
+ */
+const getCompletedHabitsCollection = (userId: string) =>
+  usersCollection.doc(userId).collection('completedHabits');
 
 /**
  * Tracks the completion of a habit for a user on a specific date.
- * Adds an entry to the 'habitTracking' collection in Firestore.
- * @param userId The user's unique ID
- * @param habitId The habit's unique ID
- * @param trackingDate The date of completion in Zero format
- * @returns BaseResponseType
  */
 export const trackHabitCompletion = async (
   userId: string,
@@ -230,165 +152,221 @@ export const trackHabitCompletion = async (
   trackingDate: string,
 ): Promise<BaseResponseType> => {
   try {
-    await firestore().collection('habitTracking').add({
-      userId,
+    const docId = `${habitId}_${trackingDate}`;
+    await getCompletedHabitsCollection(userId).doc(docId).set({
       habitId,
-      trackingDate,
+      date: trackingDate,
     });
-    return {
-      success: true,
-      msg: 'Habit completion tracked successfully',
-    };
+    return { success: true, msg: 'Habit completion tracked' };
   } catch (error: any) {
-    return {
-      success: false,
-      msg: error.message || 'Failed to track habit completion',
-    };
-  }
-};
-
-/**
- * Fetches all completed habit IDs for a user on a specific date from habitTracking collection.
- * @param userId The user's unique ID
- * @param date The date to check (in DATE_FORMAT_ZERO)
- * @returns Promise<string[]> Array of completed habit IDs
- */
-export const fetchCompletedHabitsForUserOnDate = async (
-  userId: string,
-  date: string,
-): Promise<string[]> => {
-  try {
-    const snapshot = await firestore()
-      .collection('habitTracking')
-      .where('userId', '==', userId)
-      .where('trackingDate', '==', date)
-      .get();
-    return snapshot.docs.map(doc => doc.data().habitId);
-  } catch (error) {
-    return [];
+    return { success: false, msg: error.message || 'Failed to track' };
   }
 };
 
 /**
  * Subscribes to real-time updates for completed habit IDs for a user on a specific date.
- * @param userId The user's unique ID
- * @param date The date to check (in DATE_FORMAT_ZERO)
- * @param onUpdate Callback to receive the updated array of completed habit IDs
- * @returns Unsubscribe function
  */
 export const subscribeToCompletedHabitsForDate = (
   userId: string,
   date: string,
   onUpdate: (completedHabitIds: string[]) => void,
 ) => {
-  return firestore()
-    .collection('habitTracking')
-    .where('userId', '==', userId)
-    .where('trackingDate', '==', date)
-    .onSnapshot(snapshot => {
-      const completedHabitIds = snapshot.docs.map(doc => doc.data().habitId);
-      onUpdate(completedHabitIds);
-    });
+  const query = getCompletedHabitsCollection(userId).where('date', '==', date);
+  return query.onSnapshot(snapshot => {
+    const completedHabitIds = snapshot.docs.map(doc => doc.data().habitId);
+    onUpdate(completedHabitIds);
+  });
 };
 
+/**
+ * Fetches all completion dates for a specific habit.
+ */
+export async function fetchCompletedHabitsForHabit(
+  userId: string,
+  habitId: string,
+): Promise<string[]> {
+  try {
+    const snapshot = await getCompletedHabitsCollection(userId)
+      .where('habitId', '==', habitId)
+      .orderBy('date', 'asc')
+      .get();
+    return snapshot.docs.map(doc => doc.data().date);
+  } catch (error) {
+    console.error('Error fetching completed habits for habit:', error);
+    return [];
+  }
+}
+
+/**
+ * Calculates the current and best streaks from a sorted list of dates.
+ */
+export function calculateStreaks(dates: string[]): {
+  currentStreak: number;
+  bestStreak: number;
+} {
+  if (dates.length === 0) {
+    return { currentStreak: 0, bestStreak: 0 };
+  }
+
+  const sortedMoments = dates
+    .map(d => moment(d, 'YYYY-MM-DD'))
+    .sort((a, b) => a.diff(b));
+
+  let currentStreak = 1;
+  let bestStreak = 1;
+
+  for (let i = 1; i < sortedMoments.length; i++) {
+    const diff = sortedMoments[i].diff(sortedMoments[i - 1], 'days');
+    if (diff === 1) {
+      currentStreak++;
+    } else if (diff > 1) {
+      currentStreak = 1; // Reset streak
+    }
+    if (currentStreak > bestStreak) {
+      bestStreak = currentStreak;
+    }
+  }
+
+  // Check if the streak is active up to today
+  const lastCompletion = sortedMoments[sortedMoments.length - 1];
+  const today = moment();
+  if (
+    !lastCompletion.isSame(today, 'day') &&
+    !lastCompletion.isSame(today.clone().subtract(1, 'day'), 'day')
+  ) {
+    currentStreak = 0;
+  }
+
+  return { currentStreak, bestStreak };
+}
+
+/**
+ * Fetches the streak data for a specific habit.
+ */
+export async function getHabitStreaks(
+  userId: string,
+  habitId: string,
+): Promise<{
+  currentStreak: number;
+  bestStreak: number;
+  completedDays: number;
+}> {
+  const completedDates = await fetchCompletedHabitsForHabit(userId, habitId);
+  const streaks = calculateStreaks(completedDates);
+  return {
+    ...streaks,
+    completedDays: completedDates.length,
+  };
+}
+
+/**
+ * Deletes a habit and all its completion records.
+ */
 export const deleteHabitsForUser = async (
   habit: HabitType,
   userId: string,
 ): Promise<BaseResponseType> => {
   try {
-    if (!habit.id) {
-      throw new Error('Habit ID is missing');
-    }
-
+    if (!habit.id) throw new Error('Habit ID is missing');
     const batch = firestore().batch();
+    batch.delete(habitsCollection.doc(habit.id));
 
-    const habitRef = firestore().collection('habits').doc(habit.id);
-    batch.delete(habitRef);
-
-    const trackingSnapshot = await firestore()
-      .collection('habitTracking')
+    const trackingSnapshot = await getCompletedHabitsCollection(userId)
       .where('habitId', '==', habit.id)
-      .where('userId', '==', userId)
       .get();
-
-    trackingSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    trackingSnapshot.docs.forEach(doc => batch.delete(doc.ref));
 
     await batch.commit();
-
-    return {
-      success: true,
-      msg: 'Habit deleted successfully.',
-    };
+    return { success: true, msg: 'Habit deleted successfully' };
   } catch (error: any) {
-    return {
-      success: false,
-      msg: error.message || 'Failed to delete habit.',
-    };
+    return { success: false, msg: error.message || 'Failed to delete habit' };
   }
 };
 
+// ========================================================================
+// JOURNALS
+// ========================================================================
+
+/**
+ * Creates or updates a journal entry for a specific date.
+ */
 export const saveJournalEntry = async (
   journal: Omit<JournalType, 'id'>,
 ): Promise<JournalType> => {
-  const docRef = await firestore().collection('journals').add(journal);
-  return { ...journal, id: docRef.id };
+  const { userId, journalDate } = journal;
+  const docId = `${userId}_${journalDate}`;
+  const docRef = journalsCollection.doc(docId);
+  await docRef.set(journal, { merge: true });
+  const updatedDoc = await docRef.get();
+  return { id: docRef.id, ...updatedDoc.data() } as JournalType;
 };
 
+/**
+ * Fetches a single journal entry for a user and date.
+ */
 export const fetchJournalEntry = async (
   userId: string,
   journalDate: string,
 ): Promise<JournalType | null> => {
-  const snapshot = await firestore()
-    .collection('journals')
+  const snapshot = await journalsCollection
     .where('userId', '==', userId)
     .where('journalDate', '==', journalDate)
     .limit(1)
     .get();
 
-  if (!snapshot.empty) {
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...(doc.data() as Omit<JournalType, 'id'>) };
-  }
-  return null;
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() } as JournalType;
 };
 
 /**
- * Fetches all journal entries for a user within a date range (inclusive).
- * @param userId The user's unique ID
- * @param startDate The start date (YYYY-MM-DD or ISO string)
- * @param endDate The end date (YYYY-MM-DD or ISO string)
- * @returns Promise<BaseResponseType<JournalType[]>>
+ * Fetches all journal entries for a user within a date range.
  */
 export const fetchJournalsForUserInRange = async (
   userId: string,
   startDate: string,
   endDate: string,
 ): Promise<BaseResponseType<JournalType[]>> => {
-  console.log(
-    `userId: ${userId} start date ${startDate} -- end date ${endDate}`,
-  );
   try {
-    const snapshot = await firestore()
-      .collection('journals')
+    const snapshot = await journalsCollection
       .where('userId', '==', userId)
       .where('journalDate', '>=', startDate)
       .where('journalDate', '<=', endDate)
       .orderBy('journalDate', 'asc')
       .get();
-    const journals: JournalType[] = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as Omit<JournalType, 'id'>),
-    }));
-    return {
-      success: true,
-      data: journals,
-    };
+    const journals = snapshot.docs.map(
+      doc => ({ id: doc.id, ...doc.data() } as JournalType),
+    );
+    return { success: true, data: journals };
   } catch (error: any) {
-    return {
-      success: false,
-      msg: error.message || 'Failed to fetch journals',
-    };
+    return { success: false, msg: error.message || 'Failed to fetch journals' };
+  }
+};
+
+export const fetchAllJournalsForUser = async (
+  userId: string,
+): Promise<BaseResponseType<JournalType[]>> => {
+  try {
+    const snapshot = await journalsCollection
+      .where('userId', '==', userId)
+      .orderBy('journalDate', 'desc')
+      .get();
+
+    const journals = snapshot.docs.map(
+      doc => ({ id: doc.id, ...doc.data() } as JournalType),
+    );
+
+    return { success: true, data: journals };
+  } catch (error: any) {
+    return { success: false, msg: error.message || 'Failed to fetch journals' };
+  }
+};
+
+export const deleteJournalEntry = async (userId: string, journalId: string) => {
+  try {
+    await journalsCollection.doc(journalId).delete();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, msg: error.message || 'Delete failed' };
   }
 };
