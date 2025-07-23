@@ -14,12 +14,14 @@ import {
   DATE_FORMAT_DISPLAY,
   formatDate,
   getDaysDifference,
-  TIME_FORMAT_DISPLAY,
+  TIME_FORMAT_24_HOUR,
+  TIME_FORMAT_12_HOUR,
 } from '@/utils/DateTimeUtils';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { getHabitStreaks } from '@/services/FirebaseService';
 import { useAppSelector } from '@/redux/hook';
+import moment from 'moment';
 
 interface Props {
   habit: HabitType;
@@ -148,7 +150,22 @@ const HabitListItem = forwardRef<any, Props>(
                       style={{ marginRight: 6 }}
                     />
                     <Text style={textStyles.label}>
-                      {formatDate(habit.reminderTime, TIME_FORMAT_DISPLAY)}
+                      {(() => {
+                        // Always display in 12-hour format with AM/PM
+                        let timeStr = habit.reminderTime;
+                        if (!timeStr) return '';
+                        // If it's already in HH:mm, format to 12-hour
+                        if (timeStr.length <= 5) {
+                          return moment(timeStr, TIME_FORMAT_24_HOUR).format(
+                            TIME_FORMAT_12_HOUR,
+                          );
+                        }
+                        // If it's a date string, extract time and format
+                        const m = moment(timeStr);
+                        return m.isValid()
+                          ? m.format(TIME_FORMAT_12_HOUR)
+                          : timeStr;
+                      })()}
                     </Text>
                   </>
                 )}

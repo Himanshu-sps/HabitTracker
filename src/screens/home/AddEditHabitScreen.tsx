@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -24,20 +24,19 @@ import {
   DATE_FORMAT_DISPLAY,
   DATE_FORMAT_ZERO,
   formatDate,
-  TIME_FORMAT_DISPLAY,
-  // toUTCISOString, // No longer needed for start/end date
-  toUTCTimeString,
+  TIME_FORMAT_24_HOUR,
+  TIME_FORMAT_12_HOUR,
 } from '@/utils/DateTimeUtils';
 import { navigationRef } from '@/utils/NavigationUtils';
 import { HabitType } from '@/type';
 import { useAppTheme } from '@/utils/ThemeContext';
-import { getAppTextStyles } from '@/utils/AppTextStyles';
 import { updateHabitInFirestore } from '@/services/FirebaseService';
+import { deleteHabitCompletionForDate } from '@/services/FirebaseService';
+import AppLoader from '@/component/AppLoader';
 
 const AddEditHabitScreen = () => {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
-  const textStyles = getAppTextStyles(colors);
   const habitToEdit = (
     navigationRef.getCurrentRoute()?.params as { habit?: HabitType }
   )?.habit;
@@ -58,7 +57,7 @@ const AddEditHabitScreen = () => {
 
   const user = useAppSelector(state => state.authReducer.userData);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (habitToEdit) {
       setHabitName(habitToEdit.name || '');
       setHabitDesc(habitToEdit.description || '');
@@ -74,11 +73,13 @@ const AddEditHabitScreen = () => {
           : '',
       );
       setReminderEnabled(habitToEdit.reminderEnabled || false);
-      setReminderTime(
-        habitToEdit.reminderTime
-          ? formatDate(habitToEdit.reminderTime, TIME_FORMAT_DISPLAY)
-          : '',
-      );
+      if (habitToEdit.reminderTime) {
+        // Always store as 'HH:mm'
+        const m = moment(habitToEdit.reminderTime, TIME_FORMAT_24_HOUR);
+        setReminderTime(m.isValid() ? m.format(TIME_FORMAT_24_HOUR) : '');
+      } else {
+        setReminderTime('');
+      }
     }
   }, [habitToEdit]);
 
@@ -98,6 +99,7 @@ const AddEditHabitScreen = () => {
       !habitDesc.trim() &&
       !startDate.trim() &&
       !endDate.trim() &&
+      !selectedColor &&
       !reminderTime.trim()
     ) {
       Alert.alert('Validation', 'Please fill out the mandatory fields (*)');
@@ -125,15 +127,7 @@ const AddEditHabitScreen = () => {
       startDate: formatDate(startDate, DATE_FORMAT_ZERO, DATE_FORMAT_DISPLAY),
       endDate: formatDate(endDate, DATE_FORMAT_ZERO, DATE_FORMAT_DISPLAY),
       reminderEnabled,
-      reminderTime:
-        reminderTime && startDate
-          ? toUTCTimeString(
-              startDate,
-              reminderTime,
-              DATE_FORMAT_DISPLAY,
-              TIME_FORMAT_DISPLAY,
-            )
-          : '',
+      reminderTime, // already 'HH:mm'
     };
 
     let res;
@@ -143,6 +137,24 @@ const AddEditHabitScreen = () => {
         id: habitToEdit.id,
         createdAt: habitToEdit.createdAt,
       });
+      // If editing for today, and time is changed, remove today's completion record
+      const today = moment().format(DATE_FORMAT_ZERO);
+      const wasCompletedToday =
+        habitToEdit.reminderTime !== habitData.reminderTime &&
+        moment(today).isBetween(
+          habitData.startDate,
+          habitData.endDate,
+          undefined,
+          '[]',
+        );
+
+      if (wasCompletedToday && habitToEdit.id) {
+        try {
+          await deleteHabitCompletionForDate(user.id, habitToEdit.id, today);
+        } catch (e) {
+          // Ignore error, not critical
+        }
+      }
     } else {
       res = await addHabitToFirestore(habitData);
     }
@@ -162,6 +174,7 @@ const AddEditHabitScreen = () => {
         showBackButton
       />
 
+      <AppLoader visible={loading} />
       <View style={{ flex: 1 }}>
         <ScrollView
           style={styles.scrollView}
@@ -344,32 +357,22 @@ const AddEditHabitScreen = () => {
                 !reminderTime && { color: colors.inputPlaceholder },
               ]}
             >
-              {reminderTime ? reminderTime : 'Select Time'}
+              {reminderTime &&
+              moment(reminderTime, TIME_FORMAT_24_HOUR).isValid()
+                ? moment(reminderTime, TIME_FORMAT_24_HOUR).format(
+                    TIME_FORMAT_12_HOUR,
+                  )
+                : 'Select Time'}
             </Text>
           </TouchableOpacity>
           <DatePicker
             modal
             open={isTimePickerVisible}
-            date={
-              reminderTime
-                ? moment(reminderTime, 'hh:mm A').toDate()
-                : new Date()
-            }
+            date={getReminderTimeDate(reminderTime)}
             onConfirm={date => {
-              // If startDate is today, ensure time is not before now
-              const isToday =
-                startDate &&
-                moment(startDate, DATE_FORMAT_DISPLAY).isSame(moment(), 'day');
-              const selectedTime = moment(date);
-              const now = moment();
-              if (isToday && selectedTime.isBefore(now, 'minute')) {
-                Alert.alert(
-                  'Validation',
-                  'Please select a time later than or equal to the current time for today.',
-                );
-                return;
-              }
-              setReminderTime(selectedTime.format('hh:mm A'));
+              const hour = date.getHours().toString().padStart(2, '0');
+              const minute = date.getMinutes().toString().padStart(2, '0');
+              setReminderTime(`${hour}:${minute}`);
               setTimePickerVisibility(false);
             }}
             onCancel={() => setTimePickerVisibility(false)}
@@ -378,7 +381,12 @@ const AddEditHabitScreen = () => {
               const isToday =
                 startDate &&
                 moment(startDate, DATE_FORMAT_DISPLAY).isSame(moment(), 'day');
-              return isToday ? new Date() : undefined;
+
+              if (isToday) {
+                // 5 minutes from now
+                return moment().add(5, 'minutes').toDate();
+              }
+              return undefined;
             })()}
           />
           <View style={styles.reminderSwitchRow}>
@@ -418,6 +426,14 @@ const AddEditHabitScreen = () => {
 };
 
 export default AddEditHabitScreen;
+
+function getReminderTimeDate(reminderTime: string): Date {
+  if (!reminderTime) return new Date();
+  const [hour, minute] = reminderTime.split(':').map(Number);
+  const now = new Date();
+  now.setHours(hour || 0, minute || 0, 0, 0);
+  return now;
+}
 
 function getStyles(colors: any) {
   return StyleSheet.create({
