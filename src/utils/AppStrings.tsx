@@ -2,6 +2,8 @@ export const AppStrings = {
   loginTitle: 'Login Account',
   loginSubtitle:
     'Please enter your credentials to access your account and detail',
+  userName: 'User Name',
+  userNamePlaceholder: 'Enter user name',
   emailLabel: 'Email',
   emailPlaceholder: 'Enter your email',
   passwordLabel: 'Password',

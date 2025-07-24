@@ -1,19 +1,23 @@
-import AppNavigator from '@navigation/AppNavigator';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Provider } from 'react-redux';
+import { store, persistor } from '@/redux/store';
+import { PersistGate } from 'redux-persist/integration/react';
+import AppNavigator from '@/navigation/AppNavigator';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider } from '@/utils/ThemeContext';
 
-function App() {
+const App = () => {
   return (
-    <View style={styles.container}>
-      <AppNavigator />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <ThemeProvider>
+          <PersistGate loading={null} persistor={persistor}>
+            <AppNavigator />
+          </PersistGate>
+        </ThemeProvider>
+      </Provider>
+    </GestureHandlerRootView>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+};
 
 export default App;

@@ -6,11 +6,8 @@
     "types": ["jest"],
     "baseUrl": "./",
     "paths": {
-      "@navigation/*": ["src/navigation/*"],
-      "@redux/*": ["src/redux/*"],
-      "@screens/*": ["src/screens/*"],
-      "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"],
+      "@/*": ["src/*"]
     }
   }
 }

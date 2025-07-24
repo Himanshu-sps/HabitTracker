@@ -1,71 +1,88 @@
 import { View, Text, StatusBar, Platform, StyleSheet } from 'react-native';
 import React, { useEffect } from 'react';
-import { resetAndNavigate } from '@utils/NavigationUtils';
+import { resetAndNavigate } from '@/utils/NavigationUtils';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import COLORS from '../utils/colors';
-import { ScreenRoutes } from '@utils/screen_routes';
+import { useAppTheme } from '@/utils/ThemeContext';
+import { getAppTextStyles } from '@/utils/AppTextStyles';
+import { ScreenRoutes } from '@/utils/screen_routes';
+import { useAppSelector } from '@/redux/hook';
+import { NotificationService } from '@/services/NotificationService';
 
 const SplashScreen = () => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const textStyles = getAppTextStyles(colors);
+  const user = useAppSelector(state => state.authReducer.userData);
+  const allHabits = useAppSelector(state => state.habitReducer.allHabits);
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       {
-        false
-          ? resetAndNavigate(ScreenRoutes.AuthStack)
-          : resetAndNavigate(ScreenRoutes.MainTab);
+        if (user?.email) {
+          if (allHabits && allHabits.length > 0) {
+            NotificationService.syncHabitNotifications(allHabits);
+          }
+          resetAndNavigate(ScreenRoutes.MainTab);
+        } else {
+          resetAndNavigate(ScreenRoutes.AuthStack);
+        }
       }
     }, 3000);
 
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [user]);
 
   return (
     <View style={styles.container}>
       <StatusBar hidden={Platform.OS !== 'android'} />
       <View style={styles.logoCircle}>
-        <FontAwesome name="leaf" size={48} color={COLORS.white} />
+        <FontAwesome name="leaf" size={48} color={colors.white} />
       </View>
-      <Text style={styles.title}>Habit Tracker</Text>
-      <Text style={styles.tagline}>Good habits starts here.</Text>
+      <Text style={textStyles.title}>Habit Tracker</Text>
+      <Text style={textStyles.subtitle}>Good habits starts here.</Text>
     </View>
   );
 };
 
 export default SplashScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: COLORS.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    letterSpacing: 1,
-  },
-  tagline: {
-    color: COLORS.subtitle,
-    fontSize: 16,
-    fontWeight: '400',
-    marginBottom: 4,
-    opacity: 0.85,
-    textAlign: 'center',
-  },
-});
+function getStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+    },
+    logoCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 24,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      letterSpacing: 1,
+    },
+    tagline: {
+      color: colors.subtitle,
+      fontSize: 16,
+      fontWeight: '400',
+      marginBottom: 4,
+      opacity: 0.85,
+      textAlign: 'center',
+    },
+  });
+}
