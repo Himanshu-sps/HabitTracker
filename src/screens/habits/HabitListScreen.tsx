@@ -22,6 +22,7 @@ import { ScreenRoutes } from '@/utils/screen_routes';
 import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
+import { NotificationService } from '@/services/NotificationService';
 
 const HabitListScreen = () => {
   const { colors } = useAppTheme();
@@ -79,6 +80,9 @@ const HabitListScreen = () => {
             async () => {
               setLoading(true);
               let res = await deleteHabitsForUser(habit, user?.id);
+              if (habit.id) {
+                await NotificationService.cancelHabitNotification(habit.id);
+              }
               if (res.success) {
                 setLoading(false);
                 dispatch(

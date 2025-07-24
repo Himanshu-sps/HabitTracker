@@ -33,6 +33,7 @@ export interface HabitType {
   reminderEnabled: boolean;
   reminderTime?: string; // e.g. '10:00 AM' or ISO time string
   createdAt: string; // ISO string
+  completed?: boolean; // Indicates if the habit is completed for today
 }
 
 export interface JournalType {

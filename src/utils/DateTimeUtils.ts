@@ -2,6 +2,8 @@ export const DATE_FORMAT_DISPLAY = 'DD-MMM-YYYY';
 export const DATE_FORMAT_DISPLAY_DAY_MONTH_DATE = 'dddd, MMMM D';
 export const TIME_FORMAT_DISPLAY = 'hh:mm A';
 export const DATE_FORMAT_ZERO = 'YYYY-MM-DD[T]00:00:00.000[Z]';
+export const TIME_FORMAT_24_HOUR = 'HH:mm';
+export const TIME_FORMAT_12_HOUR = 'hh:mm A';
 
 import moment from 'moment';
 
@@ -50,14 +52,14 @@ export function toUTCISOString(
  * @param date - The date part (string)
  * @param time - The time part (string)
  * @param dateFormat - The format of the date part (default: DATE_FORMAT_DISPLAY)
- * @param timeFormat - The format of the time part (default: 'hh:mm A')
+ * @param timeFormat - The format of the time part (default: TIME_FORMAT_12_HOUR)
  * @returns UTC ISO string
  */
 export function toUTCTimeString(
   date: string,
   time: string,
   dateFormat: string = DATE_FORMAT_DISPLAY,
-  timeFormat: string = 'hh:mm A',
+  timeFormat: string = TIME_FORMAT_12_HOUR,
 ): string {
   const dateTime = moment(`${date} ${time}`, `${dateFormat} ${timeFormat}`);
   return dateTime.utc().toISOString();
