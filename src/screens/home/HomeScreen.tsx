@@ -5,9 +5,8 @@ import {
   FlatList,
   ListRenderItem,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { setAllHabits, setTodaysHabits } from '@/redux/slices/habitSlice';
 import AppSpacer from '@/component/AppSpacer';
@@ -31,11 +30,7 @@ import {
 import HabitListItem from '../habits/HabitListItem';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { AppRootState } from '@/redux/store';
-import {
-  showConfirmAlert,
-  showInfoAlert,
-  showErrorAlert,
-} from '@/utils/AlertUtils';
+import { showConfirmAlert } from '@/utils/AlertUtils';
 import AppLoader from '@/component/AppLoader';
 import { fetchMotivation } from '@/redux/slices/motivationSlice';
 import * as Progress from 'react-native-progress';
@@ -47,6 +42,7 @@ import { firebaseLogout } from '@/services/FirebaseService';
 import { resetUserData } from '@/redux/slices/authSlice';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 import { NotificationService } from '@/services/NotificationService';
+import notifee from '@notifee/react-native';
 
 const HomeScreen = () => {
   const { colors } = useAppTheme();
@@ -69,12 +65,22 @@ const HomeScreen = () => {
     (state: AppRootState) => state.habitReducer.todaysHabits,
   );
 
+  const allHabits = useAppSelector(
+    (state: AppRootState) => state.habitReducer.allHabits,
+  );
+
   const dispatch = useAppDispatch();
   const rdxDispatch = useDispatch();
 
   const handleLogout = async () => {
     const res = await firebaseLogout();
     if (res.success) {
+      // Cancel all scheduled notifications for all habits
+      for (const habit of allHabits) {
+        if (habit.id) {
+          await NotificationService.cancelHabitNotification(habit.id);
+        }
+      }
       rdxDispatch(resetUserData());
       resetAndNavigate(ScreenRoutes.AuthStack);
     }
@@ -144,6 +150,10 @@ const HomeScreen = () => {
   }, [user?.id, dispatch, refreshId]);
 
   useEffect(() => {
+    // Request notification permissions on app start
+    notifee.requestPermission().then(authStatus => {
+      console.log('Auth status', authStatus);
+    });
     NotificationService.setupChannels();
     dispatch(fetchMotivation());
   }, []);
@@ -320,7 +330,7 @@ const HomeScreen = () => {
               />
             </View>
 
-            <AppSpacer vertical={28} />
+            <AppSpacer vertical={16} />
 
             <Text style={textStyles.subtitle}>Today's Motivation ✨</Text>
 
@@ -332,7 +342,7 @@ const HomeScreen = () => {
               )}
             </View>
 
-            <AppSpacer vertical={24} />
+            <AppSpacer vertical={16} />
             {activeTodayCount > 0 && (
               <Text style={textStyles.subtitle}>Today's Habits</Text>
             )}
@@ -436,7 +446,7 @@ function getStyles(colors: any, insets: any) {
     progressCard: {
       backgroundColor: colors.cardBg,
       borderRadius: 16,
-      padding: 18,
+      padding: 8,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',

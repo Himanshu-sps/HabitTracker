@@ -31,6 +31,7 @@ interface Props {
   onStatisticsPress: (habit: HabitType) => void;
   enableLeftSwipe?: boolean;
   enableRightSwipe?: boolean;
+  refreshKey?: number; // Add this line
 }
 
 const HabitListItem = forwardRef<any, Props>(
@@ -43,6 +44,7 @@ const HabitListItem = forwardRef<any, Props>(
       onStatisticsPress,
       enableLeftSwipe = true,
       enableRightSwipe = true,
+      refreshKey, // Add this line
     },
     ref,
   ) => {
@@ -59,9 +61,10 @@ const HabitListItem = forwardRef<any, Props>(
 
     useEffect(() => {
       if (user?.id && habit.id) {
+        console.log('GET HABIT STREAKS initial', habit.name);
         getHabitStreaks(user.id, habit.id).then(setStreaks);
       }
-    }, [user?.id, habit.id]);
+    }, [user?.id, habit.id, refreshKey]); // Add refreshKey as dependency
 
     const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
 

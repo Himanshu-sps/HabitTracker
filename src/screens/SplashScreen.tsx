@@ -6,19 +6,26 @@ import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import { useAppSelector } from '@/redux/hook';
+import { NotificationService } from '@/services/NotificationService';
 
 const SplashScreen = () => {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
   const user = useAppSelector(state => state.authReducer.userData);
+  const allHabits = useAppSelector(state => state.habitReducer.allHabits);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       {
-        user?.email
-          ? resetAndNavigate(ScreenRoutes.MainTab)
-          : resetAndNavigate(ScreenRoutes.AuthStack);
+        if (user?.email) {
+          if (allHabits && allHabits.length > 0) {
+            NotificationService.syncHabitNotifications(allHabits);
+          }
+          resetAndNavigate(ScreenRoutes.MainTab);
+        } else {
+          resetAndNavigate(ScreenRoutes.AuthStack);
+        }
       }
     }, 3000);
 

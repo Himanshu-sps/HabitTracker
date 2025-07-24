@@ -10,17 +10,42 @@ import moment from 'moment';
 export class NotificationService {
   // Call this at app startup or when habits change
   static async syncHabitNotifications(habits: HabitType[]) {
+    console.log(
+      '[NotificationService] syncHabitNotifications called with habits:',
+      habits.map(h => ({
+        id: h.id,
+        name: h.name,
+        completed: h.completed,
+        reminderEnabled: h.reminderEnabled,
+        reminderTime: h.reminderTime,
+        startDate: h.startDate,
+        endDate: h.endDate,
+      })),
+    );
     for (const habit of habits) {
       if (NotificationService.shouldSchedule(habit)) {
+        console.log(
+          `[NotificationService] Scheduling notification for habit: ${habit.name} (id: ${habit.id})`,
+        );
         await NotificationService.scheduleHabitNotification(habit);
       } else if (habit.id) {
+        console.log(
+          `[NotificationService] Cancelling notification for habit: ${habit.name} (id: ${habit.id})`,
+        );
         await NotificationService.cancelHabitNotification(habit.id);
+      } else {
+        console.log(
+          `[NotificationService] Skipping notification for habit: ${habit.name} (id: ${habit.id}). Reason: shouldSchedule returned false and no id to cancel.`,
+        );
       }
     }
   }
 
   static shouldSchedule(habit: HabitType): boolean {
     if (!habit.reminderTime) {
+      console.log(
+        `[NotificationService] shouldSchedule=false for habit: ${habit.name} (id: ${habit.id}) | No reminderTime`,
+      );
       return false;
     }
     const today = moment().startOf('day');
@@ -31,11 +56,21 @@ export class NotificationService {
     const notCompleted = !habit.completed;
     const hasReminder = habit.reminderEnabled && !!habit.reminderTime;
     const should = isWithinRange && notCompleted && hasReminder;
+    console.log(
+      `[NotificationService] shouldSchedule=${should} for habit: ${
+        habit.name
+      } (id: ${
+        habit.id
+      }) | today: ${today.toISOString()}, startDay: ${startDay.toISOString()}, endDay: ${endDay.toISOString()}, isWithinRange: ${isWithinRange}, notCompleted: ${notCompleted}, hasReminder: ${hasReminder}`,
+    );
     return should;
   }
 
   static getTodayReminderTimestamp(reminderTime?: string): number {
     if (!reminderTime) {
+      console.log(
+        '[NotificationService] getTodayReminderTimestamp: No reminderTime provided, using Date.now()',
+      );
       return Date.now();
     }
     // reminderTime: 'HH:mm' (24-hour format)
@@ -59,6 +94,9 @@ export class NotificationService {
 
   static async scheduleHabitNotification(habit: HabitType) {
     if (!habit.id || !habit.reminderTime) {
+      console.log(
+        `[NotificationService] scheduleHabitNotification: Missing id or reminderTime for habit: ${habit.name}`,
+      );
       return;
     }
     try {
@@ -71,26 +109,41 @@ export class NotificationService {
         alarmManager:
           Platform.OS === 'android' ? { allowWhileIdle: true } : undefined,
       };
+      console.log(
+        `[NotificationService] Creating trigger notification for habit: ${habit.name} at timestamp: ${trigger.timestamp}`,
+      );
       await notifee.createTriggerNotification(
         {
           id: habit.id, // Use habit ID for easy cancellation
-          title: `Habit Reminder: ${habit.name}`,
+          title: `${habit.name}`,
           body: `Don't forget to complete your habit!`,
           android: { channelId: 'habit-reminders', sound: 'default' },
           ios: { sound: 'default' },
         },
         trigger,
       );
+      console.log(
+        `[NotificationService] Notification scheduled for habit: ${habit.name} (id: ${habit.id})`,
+      );
     } catch (error) {
-      // Optionally handle error silently
+      console.error(
+        `[NotificationService] Error scheduling notification for habit: ${habit.name} (id: ${habit.id}):`,
+        error,
+      );
     }
   }
 
   static async cancelHabitNotification(habitId: string) {
     try {
       await notifee.cancelNotification(habitId);
+      console.log(
+        `[NotificationService] Notification cancelled for habitId: ${habitId}`,
+      );
     } catch (error) {
-      // Optionally handle error silently
+      console.error(
+        `[NotificationService] Error cancelling notification for habitId: ${habitId}:`,
+        error,
+      );
     }
   }
 
@@ -104,8 +157,14 @@ export class NotificationService {
           importance: 4,
           sound: 'default',
         });
+        console.log(
+          '[NotificationService] Android notification channel created.',
+        );
       } catch (error) {
-        // Optionally handle error silently
+        console.error(
+          '[NotificationService] Error creating Android channel:',
+          error,
+        );
       }
     }
   }

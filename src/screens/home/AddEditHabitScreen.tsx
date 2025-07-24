@@ -368,7 +368,37 @@ const AddEditHabitScreen = () => {
           <DatePicker
             modal
             open={isTimePickerVisible}
-            date={getReminderTimeDate(reminderTime)}
+            date={(() => {
+              // Calculate the minimum allowed time (2 minutes from now if today is in range)
+              const minTime = (() => {
+                const isTodayInRange =
+                  startDate &&
+                  endDate &&
+                  moment().isBetween(
+                    moment(startDate, DATE_FORMAT_DISPLAY),
+                    moment(endDate, DATE_FORMAT_DISPLAY).endOf('day'),
+                    undefined,
+                    '[]',
+                  );
+                if (isTodayInRange) {
+                  return moment().add(2, 'minutes');
+                }
+                return null;
+              })();
+
+              // If reminderTime is set, use it, else use minTime or now
+              if (reminderTime) {
+                const [hour, minute] = reminderTime.split(':').map(Number);
+                const base = minTime ? minTime.clone() : moment();
+                base.set({ hour, minute, second: 0, millisecond: 0 });
+                // If base is before minTime, use minTime
+                if (minTime && base.isBefore(minTime)) {
+                  return minTime.toDate();
+                }
+                return base.toDate();
+              }
+              return minTime ? minTime.toDate() : new Date();
+            })()}
             onConfirm={date => {
               const hour = date.getHours().toString().padStart(2, '0');
               const minute = date.getMinutes().toString().padStart(2, '0');
@@ -387,9 +417,7 @@ const AddEditHabitScreen = () => {
                   undefined,
                   '[]',
                 );
-
               if (isTodayInRange) {
-                // 5 minutes from now
                 return moment().add(2, 'minutes').toDate();
               }
               return undefined;
