@@ -87,11 +87,6 @@ const ProfileScreen = () => {
           <Text style={styles.listItemText}>View All Journals</Text>
           <Icon name="chevron-right" size={26} color={colors.text} />
         </TouchableOpacity>
-        {/* About */}
-        <TouchableOpacity style={styles.listItem}>
-          <Text style={styles.listItemText}>About</Text>
-          <Icon name="chevron-right" size={26} color={colors.text} />
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

@@ -378,13 +378,19 @@ const AddEditHabitScreen = () => {
             onCancel={() => setTimePickerVisibility(false)}
             mode="time"
             minimumDate={(() => {
-              const isToday =
+              const isTodayInRange =
                 startDate &&
-                moment(startDate, DATE_FORMAT_DISPLAY).isSame(moment(), 'day');
+                endDate &&
+                moment().isBetween(
+                  moment(startDate, DATE_FORMAT_DISPLAY),
+                  moment(endDate, DATE_FORMAT_DISPLAY).endOf('day'),
+                  undefined,
+                  '[]',
+                );
 
-              if (isToday) {
+              if (isTodayInRange) {
                 // 5 minutes from now
-                return moment().add(5, 'minutes').toDate();
+                return moment().add(2, 'minutes').toDate();
               }
               return undefined;
             })()}

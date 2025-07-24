@@ -46,6 +46,7 @@ import { useDispatch } from 'react-redux';
 import { firebaseLogout } from '@/services/FirebaseService';
 import { resetUserData } from '@/redux/slices/authSlice';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
+import { NotificationService } from '@/services/NotificationService';
 
 const HomeScreen = () => {
   const { colors } = useAppTheme();
@@ -122,6 +123,17 @@ const HomeScreen = () => {
               (habit: HabitType) => !completedHabitIds.includes(habit.id ?? ''),
             );
             dispatch(setTodaysHabits(filtered));
+
+            // Mark habits as completed or not for notification logic
+            const habitsWithCompletion = activeHabits.map(habit => ({
+              ...habit,
+              completed: completedHabitIds.includes(habit.id ?? ''),
+            }));
+            console.log(
+              '[HomeScreen] Calling NotificationService.syncHabitNotifications with:',
+              habitsWithCompletion,
+            );
+            NotificationService.syncHabitNotifications(habitsWithCompletion);
           },
         );
 
@@ -132,6 +144,7 @@ const HomeScreen = () => {
   }, [user?.id, dispatch, refreshId]);
 
   useEffect(() => {
+    NotificationService.setupChannels();
     dispatch(fetchMotivation());
   }, []);
 
@@ -145,6 +158,9 @@ const HomeScreen = () => {
       async () => {
         setLoading(true);
         await deleteHabitsForUser(habit, user?.id);
+        if (habit.id) {
+          await NotificationService.cancelHabitNotification(habit.id);
+        }
         setLoading(false);
       },
       closeSwipeable,
@@ -157,6 +173,12 @@ const HomeScreen = () => {
     if (!user?.id || !habit.id) return;
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
     await trackHabitCompletion(user.id, habit.id, today);
+    // Mark as completed for notification logic
+    habit.completed = true;
+    console.log(
+      `[HomeScreen] Habit completed: ${habit.name} (id: ${habit.id}). Cancelling notification.`,
+    );
+    await NotificationService.cancelHabitNotification(habit.id);
     setRefreshId(prev => prev + 1);
   };
 

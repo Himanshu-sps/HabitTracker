@@ -65,6 +65,10 @@ const HabitListItem = forwardRef<any, Props>(
 
     const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
 
+    // Helper: is notification scheduled for this habit?
+    const isNotificationScheduled =
+      habit.reminderEnabled && !!habit.reminderTime && !habit.completed;
+
     useImperativeHandle(ref, () => ({
       close: () => swipeableRef.current?.close(),
     }));
@@ -114,6 +118,15 @@ const HabitListItem = forwardRef<any, Props>(
                 <Text style={[textStyles.body, styles.habit]}>
                   {habit.name}
                 </Text>
+                {/* Alarm icon if notification scheduled */}
+                {isNotificationScheduled && (
+                  <MaterialIcons
+                    name="alarm"
+                    size={22}
+                    color={colors.white}
+                    style={{ marginLeft: 8 }}
+                  />
+                )}
               </View>
 
               <AppSpacer vertical={8} />
@@ -125,6 +138,7 @@ const HabitListItem = forwardRef<any, Props>(
 
             <AppSpacer vertical={18} />
 
+            {/* Catchy Start/End Date UI */}
             <View style={styles.dateRow}>
               <MaterialIcons
                 name="calendar-today"
@@ -132,10 +146,10 @@ const HabitListItem = forwardRef<any, Props>(
                 color={colors.primary}
                 style={{ marginRight: 6 }}
               />
-
-              <Text style={textStyles.label}>
-                {formatDate(habit.startDate, DATE_FORMAT_DISPLAY)} TO{' '}
-                {formatDate(habit.endDate, DATE_FORMAT_DISPLAY)}
+              <Text style={[textStyles.label, styles.dateRangeText]}>
+                {moment(habit.startDate).format('MMM DD, YYYY')}{' '}
+                <Text style={{ color: colors.subtitle }}>to</Text>{' '}
+                {moment(habit.endDate).format('MMM DD, YYYY')}
               </Text>
             </View>
             <View style={[styles.dateRow, styles.footerContainer]}>
@@ -307,6 +321,12 @@ function getStyles(colors: any) {
       color: colors.white,
       fontWeight: 'bold',
       marginTop: 4,
+    },
+    dateRangeText: {
+      fontWeight: 'bold',
+      fontSize: 15,
+      color: colors.primary,
+      letterSpacing: 0.2,
     },
   });
 }
