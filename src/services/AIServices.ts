@@ -85,7 +85,7 @@ export async function getMotivationSuggestion(): Promise<string> {
   const prompt = `Give me a short, positive, and actionable motivational message to help someone complete all their daily habits.`;
 
   // TODO: just put ! on GEMINI_API_KEY
-  if (GEMINI_API_KEY) {
+  if (!GEMINI_API_KEY) {
     return 'Stay positive and keep going!';
   }
   try {
@@ -113,6 +113,7 @@ export async function getMotivationSuggestion(): Promise<string> {
       content?.replace(/```/g, '').trim() || 'Stay positive and keep going!'
     );
   } catch (e) {
+    console.log('error from gemini', e);
     return 'Stay positive and keep going!';
   }
 }

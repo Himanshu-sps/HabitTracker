@@ -17,6 +17,7 @@ interface HistoryState {
   }[];
   error: string | null;
   lastFetched: number | null;
+  needsRefresh: boolean;
 }
 
 const initialState: HistoryState = {
@@ -26,6 +27,7 @@ const initialState: HistoryState = {
   timelineData: [],
   error: null,
   lastFetched: null,
+  needsRefresh: false,
 };
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -139,7 +141,12 @@ export const fetchHistoryData = createAsyncThunk<
 const historySlice = createSlice({
   name: 'history',
   initialState,
-  reducers: {},
+  reducers: {
+    invalidateHistoryCache: state => {
+      state.lastFetched = null;
+      state.needsRefresh = true;
+    },
+  },
   extraReducers: builder => {
     builder
       .addCase(fetchHistoryData.pending, state => {
@@ -157,6 +164,7 @@ const historySlice = createSlice({
           state.lastFetched = action.payload.lastFetched ?? null;
         }
         state.loading = false;
+        state.needsRefresh = false;
       })
       .addCase(fetchHistoryData.rejected, (state, action) => {
         state.loading = false;
@@ -165,4 +173,5 @@ const historySlice = createSlice({
   },
 });
 
+export const { invalidateHistoryCache } = historySlice.actions;
 export default historySlice.reducer;
