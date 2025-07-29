@@ -31,9 +31,8 @@ const HistoryScreen = () => {
   const user = useAppSelector(
     (state: AppRootState) => state.authReducer.userData,
   );
-  const { loading, chartData, avgMood, timelineData } = useAppSelector(
-    (state: AppRootState) => state.history,
-  );
+  const { loading, chartData, avgMood, timelineData, needsRefresh } =
+    useAppSelector((state: AppRootState) => state.history);
   const isFocused = useIsFocused();
   const maxValue = Math.max(...chartData.data, 1);
   const yAxisSegment = maxValue;
@@ -43,6 +42,13 @@ const HistoryScreen = () => {
       dispatch(fetchHistoryData(user.id));
     }
   }, [isFocused, user?.id, dispatch]);
+
+  // Refresh history data when needed (e.g., after journal save)
+  useEffect(() => {
+    if (isFocused && user?.id && needsRefresh) {
+      dispatch(fetchHistoryData(user.id));
+    }
+  }, [needsRefresh, isFocused, user?.id, dispatch]);
 
   return (
     <SafeAreaView style={styles.screenBg}>

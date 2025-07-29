@@ -12,6 +12,7 @@ import {
 } from '@/services/FirebaseService';
 import { JournalType } from '@/type';
 import { fetchJournalEntry } from '@/services/FirebaseService';
+import { invalidateHistoryCache } from './historySlice';
 
 //Step:1
 interface JournalState {
@@ -45,15 +46,18 @@ const journalSlice = createSlice({
 // Step:4 : create async thunks
 export const saveAndAnalyzeSentiment = createAsyncThunk(
   'journal/saveAndAnalyzeSentiment',
-  async ({
-    journalEntry,
-    journalDate,
-    userId,
-  }: {
-    journalEntry: string;
-    journalDate: string;
-    userId: string;
-  }): Promise<
+  async (
+    {
+      journalEntry,
+      journalDate,
+      userId,
+    }: {
+      journalEntry: string;
+      journalDate: string;
+      userId: string;
+    },
+    { dispatch },
+  ): Promise<
     BaseResponseType<SentimentResult> & { savedJournal?: JournalType }
   > => {
     // perform AI analysis
@@ -75,6 +79,9 @@ export const saveAndAnalyzeSentiment = createAsyncThunk(
 
       // Saving in firestore
       savedJournal = await saveJournalEntry(journalToSave);
+
+      // Invalidate history cache to force refresh when navigating to history screen
+      dispatch(invalidateHistoryCache());
     }
 
     return { ...sentimentResponse, savedJournal };

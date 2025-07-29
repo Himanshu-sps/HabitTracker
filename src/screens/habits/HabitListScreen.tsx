@@ -13,7 +13,12 @@ import { AppRootState } from '@/redux/store';
 import { setAllHabits } from '@/redux/slices/habitSlice';
 import { showConfirmAlert, showInfoAlert } from '@/utils/AlertUtils';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { deleteHabitsForUser } from '@/services/FirebaseService';
+import {
+  deleteHabitsForUser,
+  subscribeToHabitsForUser,
+  trackHabitCompletion,
+} from '@/services/FirebaseService';
+import moment from 'moment';
 import AppLoader from '@/component/AppLoader';
 import { HABIT_COLORS } from '@/utils/AppColors';
 import { useFocusEffect } from '@react-navigation/native';
@@ -41,6 +46,7 @@ const HabitListScreen = () => {
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState('');
   const [filteredList, setFilteredList] = useState<HabitType[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -57,6 +63,27 @@ const HabitListScreen = () => {
       setFilteredList(allHabits);
     }
   }, [selectedColor, allHabits]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) return;
+      setLoading(true);
+      // Subscribe to habits for user
+      const unsubscribe = subscribeToHabitsForUser(user.id, habits => {
+        dispatch(setAllHabits(habits));
+        setLoading(false);
+        setRefreshKey(prev => prev + 1); // force HabitListItem to re-fetch streaks
+      });
+      return () => unsubscribe();
+    }, [user?.id, dispatch]),
+  );
+
+  const handleComplete = async (habit: HabitType) => {
+    if (!user?.id || !habit.id) return;
+    const today = moment().format('YYYY-MM-DD');
+    await trackHabitCompletion(user.id, habit.id, today);
+    setRefreshKey(prev => prev + 1); // force HabitListItem to re-fetch streaks
+  };
 
   const renderItem = ({ item }: { item: HabitType }) => {
     if (!swipeableRefs.current[item.id || item.userId]) {
@@ -99,11 +126,12 @@ const HabitListScreen = () => {
             'Cancel',
           );
         }}
-        onComplete={habit => {}}
+        onComplete={handleComplete}
         onStatisticsPress={habit => {
           navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
         }}
         enableLeftSwipe={false}
+        refreshKey={refreshKey}
       />
     );
   };
