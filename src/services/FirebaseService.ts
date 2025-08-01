@@ -1,5 +1,6 @@
 import { UserDataType, BaseResponseType, HabitType, JournalType } from '@/type';
 import { getAuth } from '@react-native-firebase/auth';
+import { fetch } from '@react-native-community/netinfo';
 import {
   getFirestore,
   collection,
@@ -111,10 +112,19 @@ export const addHabitToFirestore = async (
   habit: Omit<HabitType, 'id' | 'createdAt'>,
 ): Promise<BaseResponseType> => {
   try {
-    const docRef = await addDoc(habitsCollection, {
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+    const newBody = {
       ...habit,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    let docRef;
+    if (isConnected) {
+      docRef = await addDoc(habitsCollection, newBody);
+    } else {
+      docRef = addDoc(habitsCollection, newBody);
+    }
     return {
       success: true,
       data: { ...habit, id: docRef.id, createdAt: new Date().toISOString() },
