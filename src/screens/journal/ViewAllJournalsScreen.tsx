@@ -9,6 +9,7 @@ import {
   fetchAllJournalsByUserId,
   deleteJournalById,
 } from '@/redux/slices/journalSlice';
+import { invalidateHistoryCache } from '@/redux/slices/historySlice';
 import AppLoader from '@/component/AppLoader';
 import { FlatList } from 'react-native-gesture-handler';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
@@ -55,6 +56,7 @@ const ViewAllJournalsScreen = () => {
                   journalId: item.id as string,
                 }),
               );
+              dispatch(invalidateHistoryCache());
             },
           );
         }
