@@ -195,7 +195,7 @@ const getStyles = (colors: any) =>
     },
     logoContainer: {
       alignItems: 'center',
-      marginTop: Platform.OS === 'android' ? 40 : 60,
+      marginTop: 60,
       marginBottom: 16,
     },
     logoCircle: {
