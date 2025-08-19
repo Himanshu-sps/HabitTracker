@@ -28,6 +28,8 @@ import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 import { NotificationService } from '@/services/NotificationService';
+import AppTextInput from '@/component/AppTextInput';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const HabitListScreen = () => {
   const { colors } = useAppTheme();
@@ -47,6 +49,7 @@ const HabitListScreen = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [filteredList, setFilteredList] = useState<HabitType[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -55,14 +58,20 @@ const HabitListScreen = () => {
   );
 
   useEffect(() => {
+    let list = allHabits;
     if (selectedColor !== '') {
-      setFilteredList(
-        allHabits.filter((habit: HabitType) => habit.color == selectedColor),
-      );
-    } else {
-      setFilteredList(allHabits);
+      list = list.filter((habit: HabitType) => habit.color == selectedColor);
     }
-  }, [selectedColor, allHabits]);
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(
+        (habit: HabitType) =>
+          (habit.name || '').toLowerCase().includes(q) ||
+          (habit.description || '').toLowerCase().includes(q),
+      );
+    }
+    setFilteredList(list);
+  }, [selectedColor, allHabits, searchQuery]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -141,6 +150,26 @@ const HabitListScreen = () => {
       <AppHeader title="Habits" showBackButton={false} />
       <AppLoader visible={loading} size="large" />
 
+      {/* Search */}
+      <AppTextInput
+        label=""
+        iconName="search"
+        placeholder="Search habits"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        rightIcon={
+          searchQuery.trim() !== '' ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <MaterialIcons
+                name="close"
+                size={20}
+                color={colors.inputPlaceholder}
+              />
+            </TouchableOpacity>
+          ) : null
+        }
+      />
+
       {/* Color Picker */}
       <Text style={styles.sectionTitle}>Filter by color tags</Text>
       <View style={styles.colorRow}>
@@ -181,6 +210,15 @@ const HabitListScreen = () => {
       {filteredList.length <= 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={textStyles.title}>No habits found</Text>
+
+          {searchQuery.trim() === '' ? (
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
+            >
+              <Text style={styles.emptyStateButtonText}>Create a Habit</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : (
         <FlatList
@@ -189,7 +227,6 @@ const HabitListScreen = () => {
             (item.id || item.userId.toString()) + index.toString()
           }
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <Text style={{ textAlign: 'center', marginTop: 32 }}>
@@ -214,13 +251,12 @@ function getStyles(colors: any) {
     container: {
       flex: 1,
       backgroundColor: colors.surface,
-      padding: 16,
+      paddingHorizontal: 16,
     },
     sectionTitle: {
       fontSize: 16,
       fontWeight: 'bold',
       color: colors.text,
-      marginTop: 10,
       marginBottom: 8,
     },
     colorRow: {
@@ -233,8 +269,19 @@ function getStyles(colors: any) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      marginRight: 12,
-      marginBottom: 12,
+      marginRight: 8,
+    },
+    emptyStateButton: {
+      marginTop: 16,
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25,
+    },
+    emptyStateButtonText: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: 'bold',
     },
   });
 }

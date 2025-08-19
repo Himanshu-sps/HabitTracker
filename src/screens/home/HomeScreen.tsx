@@ -5,6 +5,7 @@ import {
   FlatList,
   ListRenderItem,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
@@ -45,6 +46,7 @@ import { NotificationService } from '@/services/NotificationService';
 import notifee from '@notifee/react-native';
 import { getJournalEntry } from '@/redux/slices/journalSlice';
 import { useIsFocused } from '@react-navigation/native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 const HomeScreen = () => {
   const { colors } = useAppTheme();
@@ -60,6 +62,9 @@ const HomeScreen = () => {
   const styles = getStyles(colors, insets);
   const [showJournalChat, setShowJournalChat] = useState(false);
   const isFocused = useIsFocused();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const screenWidth = Dimensions.get('window').width;
+  const pendingConfettiRef = useRef(false);
 
   const user = useAppSelector(
     (state: AppRootState & any) => state.authReducer.userData,
@@ -144,6 +149,16 @@ const HomeScreen = () => {
               habitsWithCompletion,
             );
             NotificationService.syncHabitNotifications(habitsWithCompletion);
+
+            // Trigger confetti ONLY when all habits for today are completed
+            if (
+              pendingConfettiRef.current &&
+              activeHabits.length > 0 &&
+              completedHabitIds.length === activeHabits.length
+            ) {
+              setShowConfetti(true);
+              pendingConfettiRef.current = false;
+            }
           },
         );
 
@@ -201,6 +216,8 @@ const HomeScreen = () => {
 
   const handleCompleteAction = async (habit: HabitType): Promise<void> => {
     if (!user?.id || !habit.id) return;
+    // Mark that we should celebrate if this action completes the last habit
+    pendingConfettiRef.current = true;
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
     await trackHabitCompletion(user.id, habit.id, today);
     // Mark as completed for notification logic
@@ -385,6 +402,17 @@ const HomeScreen = () => {
         top={menuPosition.top}
         right={menuPosition.right}
       />
+      {showConfetti && (
+        <View pointerEvents="none" style={styles.confettiContainer}>
+          <ConfettiCannon
+            autoStart
+            fadeOut
+            count={180}
+            origin={{ x: screenWidth / 2, y: -10 }}
+            onAnimationEnd={() => setShowConfetti(false)}
+          />
+        </View>
+      )}
       {/* <JournalChatModal
         visible={showJournalChat}
         userId={user?.id || ''}
@@ -403,6 +431,14 @@ function getStyles(colors: any, insets: any) {
     container: {
       flex: 1,
       backgroundColor: colors.surface,
+    },
+    confettiContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999,
     },
     headerContainer: {
       backgroundColor: colors.primary,

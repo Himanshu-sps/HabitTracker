@@ -95,11 +95,10 @@ const AddEditHabitScreen = () => {
       return;
     }
     if (
-      !habitName.trim() &&
-      !habitDesc.trim() &&
-      !startDate.trim() &&
-      !endDate.trim() &&
-      !selectedColor &&
+      !habitName.trim() ||
+      !habitDesc.trim() ||
+      !startDate.trim() ||
+      !endDate.trim() ||
       !reminderTime.trim()
     ) {
       Alert.alert('Validation', 'Please fill out the mandatory fields (*)');
