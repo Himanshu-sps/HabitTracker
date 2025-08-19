@@ -222,7 +222,7 @@ export const subscribeToCompletedHabitsForDate = (
 export async function fetchCompletedHabitsForHabit(
   userId: string,
   habitId: string,
-): Promise<string[]> {
+): Promise<BaseResponseType<string[]>> {
   try {
     const completedHabitsQuery = query(
       getCompletedHabitsCollection(userId),
@@ -230,10 +230,15 @@ export async function fetchCompletedHabitsForHabit(
       orderBy('date', 'asc'),
     );
     const snapshot = await getDocs(completedHabitsQuery);
-    return snapshot.docs.map((docSnap: any) => docSnap.data().date);
-  } catch (error) {
+    const dates = snapshot.docs.map((docSnap: any) => docSnap.data().date);
+    return { success: true, data: dates };
+  } catch (error: any) {
     console.error('Error fetching completed habits for habit:', error);
-    return [];
+    return {
+      success: false,
+      msg: error?.message || 'Error fetching completed habits for habit',
+      data: [],
+    };
   }
 }
 
@@ -286,16 +291,23 @@ export function calculateStreaks(dates: string[]): {
 export async function getHabitStreaks(
   userId: string,
   habitId: string,
-): Promise<{
-  currentStreak: number;
-  bestStreak: number;
-  completedDays: number;
-}> {
-  const completedDates = await fetchCompletedHabitsForHabit(userId, habitId);
+): Promise<
+  BaseResponseType<{
+    currentStreak: number;
+    bestStreak: number;
+    completedDays: number;
+  }>
+> {
+  const completedRes = await fetchCompletedHabitsForHabit(userId, habitId);
+  const completedDates = completedRes.data || [];
   const streaks = calculateStreaks(completedDates);
   return {
-    ...streaks,
-    completedDays: completedDates.length,
+    success: completedRes.success,
+    msg: completedRes.msg,
+    data: {
+      ...streaks,
+      completedDays: completedDates.length,
+    },
   };
 }
 
@@ -332,9 +344,14 @@ export const deleteHabitCompletionForDate = async (
   userId: string,
   habitId: string,
   date: string,
-): Promise<void> => {
-  const docId = `${habitId}_${date}`;
-  await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+): Promise<BaseResponseType> => {
+  try {
+    const docId = `${habitId}_${date}`;
+    await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+    return { success: true, msg: 'Deleted habit completion for date' };
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to delete record' };
+  }
 };
 
 // ========================================================================
@@ -346,16 +363,24 @@ export const deleteHabitCompletionForDate = async (
  */
 export const saveJournalEntry = async (
   journal: Omit<JournalType, 'id'>,
-): Promise<JournalType> => {
-  const { userId, journalDate } = journal;
-  const docId = `${userId}_${journalDate}`;
-  const docRef = doc(journalsCollection, docId);
-  await setDoc(docRef, journal, { merge: true });
-  const updatedDoc = await getDocs(
-    query(journalsCollection, where('__name__', '==', docId)),
-  );
-  const updatedData = updatedDoc.docs[0]?.data();
-  return { id: docId, ...updatedData } as JournalType;
+): Promise<BaseResponseType<JournalType>> => {
+  try {
+    const { userId, journalDate } = journal;
+    const docId = `${userId}_${journalDate}`;
+    const docRef = doc(journalsCollection, docId);
+    await setDoc(docRef, journal, { merge: true });
+    const updatedDoc = await getDocs(
+      query(journalsCollection, where('__name__', '==', docId)),
+    );
+    const updatedData = updatedDoc.docs[0]?.data();
+    return {
+      success: true,
+      data: { id: docId, ...updatedData } as JournalType,
+      msg: 'Journal saved',
+    };
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to save journal' };
+  }
 };
 
 /**
@@ -364,17 +389,25 @@ export const saveJournalEntry = async (
 export const fetchJournalEntry = async (
   userId: string,
   journalDate: string,
-): Promise<JournalType | null> => {
-  const journalQuery = query(
-    journalsCollection,
-    where('userId', '==', userId),
-    where('journalDate', '==', journalDate),
-    limit(1),
-  );
-  const snapshot = await getDocs(journalQuery);
-  if (snapshot.empty) return null;
-  const docSnap = snapshot.docs[0];
-  return { id: docSnap.id, ...docSnap.data() } as JournalType;
+): Promise<BaseResponseType<JournalType | null>> => {
+  try {
+    const journalQuery = query(
+      journalsCollection,
+      where('userId', '==', userId),
+      where('journalDate', '==', journalDate),
+      limit(1),
+    );
+    const snapshot = await getDocs(journalQuery);
+    if (snapshot.empty)
+      return { success: true, data: null, msg: 'No journal for date' };
+    const docSnap = snapshot.docs[0];
+    return {
+      success: true,
+      data: { id: docSnap.id, ...docSnap.data() } as JournalType,
+    };
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to fetch journal' };
+  }
 };
 
 /**
@@ -422,10 +455,13 @@ export const fetchAllJournalsForUser = async (
   }
 };
 
-export const deleteJournalEntry = async (userId: string, journalId: string) => {
+export const deleteJournalEntry = async (
+  userId: string,
+  journalId: string,
+): Promise<BaseResponseType> => {
   try {
     await deleteDoc(doc(journalsCollection, journalId));
-    return { success: true };
+    return { success: true, msg: 'Journal deleted' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Delete failed' };
   }

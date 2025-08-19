@@ -2,9 +2,10 @@ import {
   createSlice,
   createAsyncThunk,
   ActionReducerMapBuilder,
+  PayloadAction,
 } from '@reduxjs/toolkit';
-import { analyzeSentiment } from '@/services/AIServices';
-import { BaseResponseType, MoodType, SentimentResult } from '@/type';
+import { analyzeSentiment, suggestHabitsFromAI } from '@/services/AIServices';
+import { BaseResponseType, SentimentResult } from '@/type';
 import {
   fetchAllJournalsForUser,
   saveJournalEntry,
@@ -13,19 +14,36 @@ import {
 import { JournalType } from '@/type';
 import { fetchJournalEntry } from '@/services/FirebaseService';
 import { invalidateHistoryCache } from './historySlice';
+import { DATE_FORMAT_ZERO, formatDate } from '@/utils/DateTimeUtils';
+import { ChatMsg } from '@/type';
 
 //Step:1
 interface JournalState {
+  sentimentResult: SentimentResult | null;
+  isAiLoading: boolean;
+  isAnalysisDone: boolean;
+
   journal: JournalType | null;
   error: string | null;
   allJournals: JournalType[] | [];
+  suggestedHabitListByAi: string[];
+  chatMessages: ChatMsg[];
+  draftJournalEntry: string;
 }
 
 //Step:2
 const initialState: JournalState = {
+  sentimentResult: null,
+  isAiLoading: false,
+  isAnalysisDone: false,
+
   journal: null,
   error: null,
   allJournals: [],
+
+  suggestedHabitListByAi: [],
+  chatMessages: [],
+  draftJournalEntry: '',
 };
 
 //Step:3
@@ -34,72 +52,93 @@ const journalSlice = createSlice({
   initialState,
   reducers: {
     resetJournal: () => initialState,
+    setChatMessages: (state, action: PayloadAction<ChatMsg[]>) => {
+      state.chatMessages = action.payload;
+    },
+    appendChatMessages: (state, action: PayloadAction<ChatMsg[]>) => {
+      state.chatMessages = [...state.chatMessages, ...action.payload];
+    },
+    setIsAnalysisDone: (state, action: PayloadAction<boolean>) => {
+      state.isAnalysisDone = action.payload;
+    },
+    setDraftJournalEntry: (state, action: PayloadAction<string>) => {
+      state.draftJournalEntry = action.payload;
+    },
+    setAiLoading: (state, action: PayloadAction<boolean>) => {
+      state.isAiLoading = action.payload;
+    },
   },
   extraReducers: builder => {
-    handleSentimentAnalysis(builder);
+    handleSentimentAnalysisAction(builder);
     handleFetchJournal(builder);
     handleFetchAllJournals(builder);
     handleDeleteJournal(builder);
+    handleHabitListByAI(builder);
   },
 });
 
 // Step:4 : create async thunks
-export const saveAndAnalyzeSentiment = createAsyncThunk(
-  'journal/saveAndAnalyzeSentiment',
+export const analyzeSentimentAction = createAsyncThunk(
+  'journal/analyzeSentiment',
+  async (
+    { journalEntry, userId }: { journalEntry: string; userId: string },
+    { dispatch },
+  ): Promise<BaseResponseType<SentimentResult>> => {
+    // perform AI analysis
+    const sentimentResponse = await analyzeSentiment(journalEntry);
+    return sentimentResponse;
+  },
+);
+
+/**
+ *
+ */
+export const saveJournalEntryAction = createAsyncThunk(
+  'journal/saveJournalEntry',
   async (
     {
+      sentimentResult,
       journalEntry,
       journalDate,
       userId,
     }: {
+      sentimentResult: SentimentResult;
       journalEntry: string;
       journalDate: string;
       userId: string;
     },
     { dispatch },
-  ): Promise<
-    BaseResponseType<SentimentResult> & { savedJournal?: JournalType }
-  > => {
-    // perform AI analysis
-    const sentimentResponse = await analyzeSentiment(journalEntry);
+  ) => {
+    const journalToSave = {
+      userId,
+      journalEntry,
+      journalDate: journalDate, // already formatted in screen
+      sentimentLabel: sentimentResult?.mood.moodLabel,
+      sentimentScore: sentimentResult.mood.moodLevel,
+      aiTips: sentimentResult.tip,
+      updatedAt: new Date().toISOString(),
+    };
 
-    // JournalType object to be saved
-    let savedJournal: JournalType | undefined = undefined;
-
-    if (sentimentResponse.success && sentimentResponse.data) {
-      const journalToSave = {
-        userId,
-        journalEntry,
-        journalDate: journalDate, // already formatted in screen
-        sentimentLabel: sentimentResponse.data.mood.moodLabel,
-        sentimentScore: sentimentResponse.data.mood.moodLevel,
-        aiTips: sentimentResponse.data.tip,
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Saving in firestore
-      savedJournal = await saveJournalEntry(journalToSave);
-
-      // Invalidate history cache to force refresh when navigating to history screen
-      dispatch(invalidateHistoryCache());
-    }
-
-    return { ...sentimentResponse, savedJournal };
+    // Saving in firestore
+    const saveRes = await saveJournalEntry(journalToSave);
+    dispatch(invalidateHistoryCache());
   },
 );
 
 export const getJournalEntry = createAsyncThunk(
   'journal/getJournalEntry',
   async ({ userId, journalDate }: { userId: string; journalDate: string }) => {
-    const journal = await fetchJournalEntry(userId, journalDate);
-    return journal;
+    const res = await fetchJournalEntry(userId, journalDate);
+    if (res.success) return res.data || null;
+    throw new Error(res.msg || 'Failed to fetch journal entry');
   },
 );
 
 export const fetchAllJournalsByUserId = createAsyncThunk(
   'journal/fetchAllJournalsByUserId',
   async (userId: string) => {
-    const journals = await fetchAllJournalsForUser(userId);
+    const journals: BaseResponseType<JournalType[]> =
+      await fetchAllJournalsForUser(userId);
     return journals;
   },
 );
@@ -112,27 +151,47 @@ export const deleteJournalById = createAsyncThunk(
   },
 );
 
-// Step:5
-const handleSentimentAnalysis = (
+export const getHabitsByJournalAction = createAsyncThunk(
+  'journal/getHabitsByJournal',
+  async ({
+    moodLabel,
+    journalEntry,
+  }: {
+    moodLabel: string;
+    journalEntry: string;
+  }): Promise<BaseResponseType<string[]>> => {
+    // perform AI analysis
+    const habitListResponse = await suggestHabitsFromAI(
+      moodLabel,
+      journalEntry,
+    );
+    return habitListResponse;
+  },
+);
+
+//Step: 5;
+const handleSentimentAnalysisAction = (
   builder: ActionReducerMapBuilder<JournalState>,
 ) => {
   builder
-    .addCase(saveAndAnalyzeSentiment.fulfilled, (state, action) => {
-      if (
-        action.payload.success &&
-        action.payload.data &&
-        action.payload.savedJournal
-      ) {
-        state.journal = action.payload.savedJournal;
+    .addCase(analyzeSentimentAction.pending, state => {
+      state.isAiLoading = true;
+    })
+    .addCase(analyzeSentimentAction.fulfilled, (state, action) => {
+      if (action.payload.success && action.payload.data) {
+        state.sentimentResult = action.payload.data;
         state.error = null;
+        state.isAiLoading = false;
       } else {
+        state.sentimentResult = null;
         state.error = action.payload.msg || 'Failed to analyze sentiment';
-        state.journal = null;
+        state.isAiLoading = false;
       }
     })
-    .addCase(saveAndAnalyzeSentiment.rejected, (state, action) => {
+    .addCase(analyzeSentimentAction.rejected, (state, action) => {
+      state.sentimentResult = null;
       state.error = action.error.message || 'Failed to analyze sentiment';
-      state.journal = null;
+      state.isAiLoading = false;
     });
 };
 
@@ -186,5 +245,36 @@ const handleDeleteJournal = (
     });
 };
 
-export const { resetJournal } = journalSlice.actions;
+const handleHabitListByAI = (
+  builder: ActionReducerMapBuilder<JournalState>,
+) => {
+  builder.addCase(getHabitsByJournalAction.pending, state => {
+    state.isAiLoading = true;
+  });
+  builder.addCase(getHabitsByJournalAction.fulfilled, (state, action) => {
+    if (action.payload.success && action.payload.data) {
+      state.isAiLoading = false;
+      state.error = null;
+      state.suggestedHabitListByAi = action.payload.data ?? [];
+    } else {
+      state.isAiLoading = false;
+      state.error = action.payload.msg || 'Failed to fetch habits';
+      state.suggestedHabitListByAi = action.payload.data ?? [];
+    }
+  });
+  builder.addCase(getHabitsByJournalAction.rejected, (state, action) => {
+    state.isAiLoading = false;
+    state.error = action.error.message || 'Failed to fetch habits';
+    state.suggestedHabitListByAi = [];
+  });
+};
+
+export const {
+  resetJournal,
+  setChatMessages,
+  appendChatMessages,
+  setIsAnalysisDone,
+  setDraftJournalEntry,
+  setAiLoading,
+} = journalSlice.actions;
 export default journalSlice.reducer;

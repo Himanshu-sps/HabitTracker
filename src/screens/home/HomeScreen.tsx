@@ -43,6 +43,8 @@ import { resetUserData } from '@/redux/slices/authSlice';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 import { NotificationService } from '@/services/NotificationService';
 import notifee from '@notifee/react-native';
+import { getJournalEntry } from '@/redux/slices/journalSlice';
+import { useIsFocused } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const { colors } = useAppTheme();
@@ -56,6 +58,8 @@ const HomeScreen = () => {
   const avatarRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, insets);
+  const [showJournalChat, setShowJournalChat] = useState(false);
+  const isFocused = useIsFocused();
 
   const user = useAppSelector(
     (state: AppRootState & any) => state.authReducer.userData,
@@ -157,6 +161,22 @@ const HomeScreen = () => {
     NotificationService.setupChannels();
     dispatch(fetchMotivation());
   }, []);
+
+  // Re-check journal on each focus (e.g., after deletion from backend)
+  useEffect(() => {
+    if (!isFocused || !user?.id) return;
+    const today = formatDate(new Date(), DATE_FORMAT_ZERO);
+    dispatch(getJournalEntry({ userId: user.id, journalDate: today }))
+      .unwrap()
+      .then(journal => setShowJournalChat(!journal))
+      .catch(() => setShowJournalChat(true));
+  }, [isFocused, user?.id, dispatch]);
+
+  useEffect(() => {
+    if (showJournalChat) {
+      navigate(ScreenRoutes.JournalBotScreen);
+    }
+  }, [showJournalChat]);
 
   const handleDeleteAction = (
     habit: HabitType,
@@ -365,6 +385,13 @@ const HomeScreen = () => {
         top={menuPosition.top}
         right={menuPosition.right}
       />
+      {/* <JournalChatModal
+        visible={showJournalChat}
+        userId={user?.id || ''}
+        userName={user?.name}
+        onDismiss={() => setShowJournalChat(false)}
+        onCompleted={() => setShowJournalChat(false)}
+      /> */}
     </View>
   );
 };

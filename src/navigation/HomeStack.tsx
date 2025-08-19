@@ -6,6 +6,7 @@ import { ScreenRoutes } from '@/utils/screen_routes';
 import HabitStatisticsScreen from '../screens/habits/HabitStatisticsScreen';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
 import ViewAllJournalsScreen from '@/screens/journal/ViewAllJournalsScreen';
+import JournalBotScreen from '@/screens/journal/JournalBotScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -21,10 +22,18 @@ const HomeStack = () => (
       name={ScreenRoutes.HabitStatisticsScreen}
       component={HabitStatisticsScreen}
     />
+
     <Stack.Screen name={ScreenRoutes.ProfileScreen} component={ProfileScreen} />
+
     <Stack.Screen
       name={ScreenRoutes.ViewAllJournalsScreen}
       component={ViewAllJournalsScreen}
+    />
+
+    <Stack.Screen
+      name={ScreenRoutes.JournalBotScreen}
+      component={JournalBotScreen}
+      options={{ presentation: 'modal', gestureEnabled: false }}
     />
   </Stack.Navigator>
 );

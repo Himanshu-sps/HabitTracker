@@ -24,7 +24,8 @@ const initialState: HabitStatisticsState = {
 export const fetchHabitStatistics = createAsyncThunk(
   'habitStatistics/fetchHabitStatistics',
   async ({ userId, habitId }: { userId: string; habitId: string }) => {
-    const completedDates = await fetchCompletedHabitsForHabit(userId, habitId);
+    const res = await fetchCompletedHabitsForHabit(userId, habitId);
+    const completedDates = res.data || [];
     const streaks = calculateStreaks(completedDates);
     return { completedDates, streaks };
   },
