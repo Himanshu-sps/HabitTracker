@@ -29,6 +29,8 @@ interface JournalState {
   suggestedHabitListByAi: string[];
   chatMessages: ChatMsg[];
   draftJournalEntry: string;
+
+  postCompletionChatMessages: ChatMsg[];
 }
 
 //Step:2
@@ -44,6 +46,8 @@ const initialState: JournalState = {
   suggestedHabitListByAi: [],
   chatMessages: [],
   draftJournalEntry: '',
+
+  postCompletionChatMessages: [],
 };
 
 //Step:3
@@ -66,6 +70,21 @@ const journalSlice = createSlice({
     },
     setAiLoading: (state, action: PayloadAction<boolean>) => {
       state.isAiLoading = action.payload;
+    },
+    setPostCompletionChatMessages: (
+      state,
+      action: PayloadAction<ChatMsg[]>,
+    ) => {
+      state.postCompletionChatMessages = action.payload;
+    },
+    appendPostCompletionChatMessages: (
+      state,
+      action: PayloadAction<ChatMsg[]>,
+    ) => {
+      state.postCompletionChatMessages = [
+        ...state.postCompletionChatMessages,
+        ...action.payload,
+      ];
     },
   },
   extraReducers: builder => {
@@ -273,6 +292,8 @@ export const {
   resetJournal,
   setChatMessages,
   appendChatMessages,
+  setPostCompletionChatMessages,
+  appendPostCompletionChatMessages,
   setIsAnalysisDone,
   setDraftJournalEntry,
   setAiLoading,

@@ -18,5 +18,6 @@ export const ScreenRoutes = {
   HabitStatisticsScreen: 'HabitStatisticsScreen',
   ViewAllJournalsScreen: 'ViewAllJournalsScreen',
   JournalBotScreen: 'JournalBotScreen',
+  PostHabitCompletionBotScreen: 'PostHabitCompletionBotScreen',
   HabitStack: 'HabitStack',
 };

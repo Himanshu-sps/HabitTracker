@@ -22,37 +22,33 @@ import { DATE_FORMAT_ZERO, formatDate } from '@/utils/DateTimeUtils';
 import { useAppDispatch } from '@/redux/hook';
 import {
   analyzeSentimentAction,
-  getHabitsByJournalAction,
   resetJournal,
   saveJournalEntryAction,
-  setChatMessages,
-  appendChatMessages,
   setIsAnalysisDone,
   setDraftJournalEntry,
   setAiLoading,
+  setPostCompletionChatMessages,
+  appendPostCompletionChatMessages,
 } from '@/redux/slices/journalSlice';
 import { goBack } from '@/utils/NavigationUtils';
 import AILoader from '@/component/AILoader';
-import { moodList } from '@/utils/AppConstants';
 
 export const MessageType = {
-  GREET: 'greet',
-  JOURNAL_HELP: 'journal-help',
   BOT_SENDER: 'bot-sender',
   USER_SENDER: 'user-sender',
 };
 
-const JournalBotScreen = () => {
+const PostHabitCompletionBotScreen = () => {
   const flatListRef = useRef<FlatList>(null);
   const [journalEntry, setJournalEntry] = useState('');
 
   const dispatch = useAppDispatch();
-  const user = useAppSelector(state => state.authReducer.userData);
+  const user = useAppSelector((state: any) => state.authReducer?.userData);
   const { journal, isAiLoading, sentimentResult, error } = useAppSelector(
-    state => state.journalReducer,
+    (state: any) => state.journalReducer || {},
   );
   const chatMsg = useAppSelector(
-    state => state.journalReducer.chatMessages ?? [],
+    state => state.journalReducer.postCompletionChatMessages ?? [],
   );
   const isAnalysisDone = useAppSelector(
     state => state.journalReducer.isAnalysisDone,
@@ -92,7 +88,7 @@ const JournalBotScreen = () => {
 
     // Echo user message
     dispatch(
-      appendChatMessages([
+      appendPostCompletionChatMessages([
         {
           id: `${MessageType.USER_SENDER}-3`,
           sender: 'user',
@@ -109,52 +105,20 @@ const JournalBotScreen = () => {
     ).unwrap();
 
     let sentimentData: SentimentResult | null = null;
-    // TODO: check
     if (analyzeRes.success && analyzeRes.data && textToAnalyze) {
       sentimentData = analyzeRes.data;
 
       dispatch(
-        appendChatMessages([
+        appendPostCompletionChatMessages([
           {
             id: `${MessageType.BOT_SENDER}-4`,
             sender: 'bot',
-            message: `${user?.name} \nI sense you're feeling ${sentimentData?.mood.moodLabel} ${sentimentData?.mood.moodIcon}`,
+            message: `${user?.name} \nI sense you're feeling ${sentimentData?.mood.moodLabel} ${sentimentData?.mood.moodIcon}. \n\nThanks for sharing I will update the journal entry`,
           },
           {
             id: `${MessageType.BOT_SENDER}-5`,
             sender: 'bot',
-            message: `AI Tip: ${sentimentData?.tip}`,
-          },
-        ]),
-      );
-    }
-
-    const aiHabits = await dispatch(
-      getHabitsByJournalAction({
-        moodLabel: sentimentData?.mood.moodLabel || moodList[2].moodLabel,
-        journalEntry: textToAnalyze,
-      }),
-    ).unwrap();
-
-    console.log(`TAGE ==> ${JSON.stringify(aiHabits.data)}`);
-
-    if (aiHabits.success) {
-      dispatch(
-        appendChatMessages([
-          {
-            id: `${MessageType.BOT_SENDER}-6`,
-            sender: 'bot',
-            message: `Here are a few tiny habits for today:`,
-          },
-          {
-            id: `${MessageType.BOT_SENDER}-7}`,
-            sender: 'bot',
-            message: aiHabits.data?.map(h => `• ${h}`).join('\n'),
-          },
-          {
-            id: `${MessageType.BOT_SENDER}-8}`,
-            sender: 'bot',
-            message: 'All set! Tap Done to save your journal.',
+            message: `Beatiful AI Tip for keeping the momentum: ${sentimentData?.tip}`,
           },
         ]),
       );
@@ -189,7 +153,7 @@ const JournalBotScreen = () => {
     }
     if ((chatMsg?.length ?? 0) === 0) {
       dispatch(
-        setChatMessages([
+        setPostCompletionChatMessages([
           {
             id: `${MessageType.BOT_SENDER}-1`,
             sender: 'bot',
@@ -199,7 +163,7 @@ const JournalBotScreen = () => {
             id: `${MessageType.BOT_SENDER}-2`,
             sender: 'bot',
             message:
-              "I'm here to help with today's journal. \n\nShare a few lines about your day—anything on your mind. \n\nWhen you're ready, type your journal below and analyze.",
+              "Glad! You've completed all habits for today. \n\nPlease share few lines after completing all habits \n\nJust type your journal entry below and we will analyze your mood.",
           },
         ]),
       );
@@ -210,7 +174,7 @@ const JournalBotScreen = () => {
     // If chat already reached completion in a previous session, ensure Done is shown
     if (!isAnalysisDone && chatMsg && chatMsg.length > 0) {
       const hasCompletionMsg = chatMsg.some(m =>
-        (m.message || '').includes('All set! Tap Done to save your journal.'),
+        (m.message || '').includes('Beatiful AI Tip for keeping the momentum'),
       );
       if (hasCompletionMsg) {
         dispatch(setIsAnalysisDone(true));
@@ -228,7 +192,7 @@ const JournalBotScreen = () => {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <AppHeader
-        title="AI Journal Assistant"
+        title="Assessment"
         showBackButton={true}
         leftMaterialIcon="cancel"
       />
@@ -305,7 +269,7 @@ const JournalBotScreen = () => {
   );
 };
 
-export default JournalBotScreen;
+export default PostHabitCompletionBotScreen;
 
 function getStyles(colors: any) {
   return StyleSheet.create({

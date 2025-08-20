@@ -47,6 +47,8 @@ import notifee from '@notifee/react-native';
 import { getJournalEntry } from '@/redux/slices/journalSlice';
 import { useIsFocused } from '@react-navigation/native';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import AppCustomModal from '@/component/AppCustomModal';
+import AppButton from '@/component/AppButton';
 
 const HomeScreen = () => {
   const { colors } = useAppTheme();
@@ -62,9 +64,9 @@ const HomeScreen = () => {
   const styles = getStyles(colors, insets);
   const [showJournalChat, setShowJournalChat] = useState(false);
   const isFocused = useIsFocused();
-  const [showConfetti, setShowConfetti] = useState(false);
-  const screenWidth = Dimensions.get('window').width;
   const pendingConfettiRef = useRef(false);
+  const [showJournalUpdateModal, setShowJournalUpdateModal] = useState(false);
+  const [triggerConfetti, setTriggerConfetti] = useState(false);
 
   const user = useAppSelector(
     (state: AppRootState & any) => state.authReducer.userData,
@@ -156,8 +158,9 @@ const HomeScreen = () => {
               activeHabits.length > 0 &&
               completedHabitIds.length === activeHabits.length
             ) {
-              setShowConfetti(true);
               pendingConfettiRef.current = false;
+              // Show journal update dialog immediately with confetti inside
+              setShowJournalUpdateModal(true);
             }
           },
         );
@@ -192,6 +195,19 @@ const HomeScreen = () => {
       navigate(ScreenRoutes.JournalBotScreen);
     }
   }, [showJournalChat]);
+
+  // Trigger confetti when modal becomes visible
+  useEffect(() => {
+    if (showJournalUpdateModal) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        setTriggerConfetti(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setTriggerConfetti(false);
+    }
+  }, [showJournalUpdateModal]);
 
   const handleDeleteAction = (
     habit: HabitType,
@@ -402,24 +418,59 @@ const HomeScreen = () => {
         top={menuPosition.top}
         right={menuPosition.right}
       />
-      {showConfetti && (
-        <View pointerEvents="none" style={styles.confettiContainer}>
-          <ConfettiCannon
-            autoStart
-            fadeOut
-            count={180}
-            origin={{ x: screenWidth / 2, y: -10 }}
-            onAnimationEnd={() => setShowConfetti(false)}
-          />
+      {/* Background confetti removed - now inside the modal */}
+
+      <AppCustomModal visible={showJournalUpdateModal}>
+        <View style={styles.dialogContainer}>
+          {/* Confetti inside the modal */}
+          <View style={styles.modalConfettiContainer}>
+            {triggerConfetti && (
+              <ConfettiCannon
+                key={triggerConfetti ? 'confetti-active' : 'confetti-inactive'}
+                autoStart
+                fadeOut
+                count={100}
+                origin={{ x: 150, y: -10 }}
+                onAnimationEnd={() => {}}
+              />
+            )}
+          </View>
+
+          <Icon name="star" size={56} color="#FFD700" />
+          <AppSpacer vertical={8} />
+          <Text style={textStyles.title}>Amazing Achievement! 🎉</Text>
+          <AppSpacer vertical={8} />
+          <Text style={[textStyles.subtitle, { color: colors.primary }]}>
+            You've crushed it!
+          </Text>
+          <AppSpacer vertical={8} />
+          <Text style={styles.dialogMessage}>
+            All your habits are complete! This is the perfect time to reflect on
+            your success and update your journal.
+            <Text style={styles.dialogHighlight}>
+              {' '}
+              Keep this momentum going!{' '}
+            </Text>
+          </Text>
+          <View style={styles.dialogButtonContainer}>
+            <AppButton
+              title="Maybe Later"
+              onPress={() => setShowJournalUpdateModal(false)}
+              style={styles.dialogButtonSecondary}
+              textStyle={styles.dialogButtonSecondaryText}
+            />
+            <AppButton
+              title="Update Journal"
+              onPress={() => {
+                setShowJournalUpdateModal(false);
+                navigate(ScreenRoutes.PostHabitCompletionBotScreen);
+              }}
+              style={styles.dialogButtonPrimary}
+              textStyle={styles.dialogButtonPrimaryText}
+            />
+          </View>
         </View>
-      )}
-      {/* <JournalChatModal
-        visible={showJournalChat}
-        userId={user?.id || ''}
-        userName={user?.name}
-        onDismiss={() => setShowJournalChat(false)}
-        onCompleted={() => setShowJournalChat(false)}
-      /> */}
+      </AppCustomModal>
     </View>
   );
 };
@@ -432,14 +483,7 @@ function getStyles(colors: any, insets: any) {
       flex: 1,
       backgroundColor: colors.surface,
     },
-    confettiContainer: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 9999,
-    },
+    // Background confetti container removed - now inside modal
     headerContainer: {
       backgroundColor: colors.primary,
       paddingHorizontal: 16,
@@ -572,6 +616,88 @@ function getStyles(colors: any, insets: any) {
       color: colors.white,
       fontSize: 16,
       fontWeight: 'bold',
+    },
+    dialogContainer: {
+      alignItems: 'center',
+      paddingVertical: 24,
+      minWidth: 300,
+      position: 'relative',
+    },
+    modalConfettiContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: -1, // Put confetti behind the content
+      pointerEvents: 'none', // Don't block touch events
+    },
+    dialogTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 20,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    dialogSubtitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.primary,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    dialogMessage: {
+      fontSize: 16,
+      color: colors.subtitle,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    dialogHighlight: {
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    dialogButtonContainer: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    dialogButtonPrimary: {
+      flex: 1,
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    dialogButtonSecondary: {
+      flex: 1,
+      marginTop: 0,
+      marginBottom: 0,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    dialogButtonSecondaryText: {
+      color: colors.text,
+    },
+    dialogButton: {
+      flex: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    dialogButtonText: {
+      fontSize: 17,
+      fontWeight: 'bold',
+    },
+    dialogButtonPrimaryText: {
+      color: colors.white,
     },
   });
 }
