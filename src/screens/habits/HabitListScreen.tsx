@@ -1,3 +1,4 @@
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -5,23 +6,25 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import moment from 'moment';
+
+// Local imports
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { HabitType } from '@/type';
 import HabitListItem from '@/screens/habits/HabitListItem';
 import { AppRootState } from '@/redux/store';
 import { setAllHabits } from '@/redux/slices/habitSlice';
 import { showConfirmAlert, showInfoAlert } from '@/utils/AlertUtils';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   deleteHabitsForUser,
   subscribeToHabitsForUser,
   trackHabitCompletion,
 } from '@/services/FirebaseService';
-import moment from 'moment';
 import AppLoader from '@/component/AppLoader';
 import { HABIT_COLORS } from '@/utils/AppColors';
-import { useFocusEffect } from '@react-navigation/native';
 import { navigate } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import { useAppTheme } from '@/utils/ThemeContext';
@@ -29,39 +32,73 @@ import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 import { NotificationService } from '@/services/NotificationService';
 import AppTextInput from '@/component/AppTextInput';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
+/**
+ * HabitListScreen Component
+ *
+ * A comprehensive screen that displays all user habits with search, filtering,
+ * and management capabilities. Provides functionality to view, complete, edit,
+ * and delete habits with real-time updates.
+ *
+ * Features:
+ * - List view of all user habits with real-time updates
+ * - Search functionality for habit names and descriptions
+ * - Color-based filtering system
+ * - Habit completion tracking
+ * - Swipe-to-delete functionality
+ * - Navigation to habit creation and editing
+ * - Real-time habit synchronization
+ */
 const HabitListScreen = () => {
+  // Theme and styles
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
+
+  // Redux state
   const user = useAppSelector(
     (state: AppRootState) => state.authReducer.userData,
   );
-
   const allHabits = useAppSelector(
     (state: AppRootState) => state.habitReducer.allHabits,
   );
   const dispatch = useAppDispatch();
+
+  // Refs
   const swipeableRefs = useRef<{ [key: string]: any }>({});
 
+  // Local state
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState('');
   const [filteredList, setFilteredList] = useState<HabitType[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Effects
+
+  /**
+   * Effect: Reset color filter when screen is focused
+   * Clears any active color filter when returning to the screen
+   */
   useFocusEffect(
     React.useCallback(() => {
       setSelectedColor('');
     }, []),
   );
 
+  /**
+   * Effect: Filter habits based on color selection and search query
+   * Updates the filtered list whenever filters change
+   */
   useEffect(() => {
     let list = allHabits;
+
+    // Apply color filter
     if (selectedColor !== '') {
-      list = list.filter((habit: HabitType) => habit.color == selectedColor);
+      list = list.filter((habit: HabitType) => habit.color === selectedColor);
     }
+
+    // Apply search filter
     if (searchQuery.trim() !== '') {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter(
@@ -70,107 +107,167 @@ const HabitListScreen = () => {
           (habit.description || '').toLowerCase().includes(q),
       );
     }
+
     setFilteredList(list);
   }, [selectedColor, allHabits, searchQuery]);
 
+  /**
+   * Effect: Subscribe to real-time habit updates
+   * Sets up Firebase listener for habit changes and manages loading state
+   */
   useFocusEffect(
     React.useCallback(() => {
       if (!user?.id) return;
+
       setLoading(true);
+
       // Subscribe to habits for user
       const unsubscribe = subscribeToHabitsForUser(user.id, habits => {
         dispatch(setAllHabits(habits));
         setLoading(false);
-        setRefreshKey(prev => prev + 1); // force HabitListItem to re-fetch streaks
+        setRefreshKey(prev => prev + 1); // Force HabitListItem to re-fetch streaks
       });
+
       return () => unsubscribe();
     }, [user?.id, dispatch]),
   );
 
+  // Event handlers
+
+  /**
+   * Handles habit completion for a specific habit
+   * Tracks the completion in Firebase and refreshes streak data
+   * @param habit - The habit to mark as completed
+   */
   const handleComplete = async (habit: HabitType) => {
     if (!user?.id || !habit.id) return;
+
     const today = moment().format('YYYY-MM-DD');
     await trackHabitCompletion(user.id, habit.id, today);
-    setRefreshKey(prev => prev + 1); // force HabitListItem to re-fetch streaks
+    setRefreshKey(prev => prev + 1); // Force HabitListItem to re-fetch streaks
   };
 
+  /**
+   * Handles habit deletion with confirmation
+   * Shows confirmation dialog and deletes habit with all related data
+   * @param habit - The habit to delete
+   * @param closeSwipeable - Function to close the swipeable item
+   */
+  const handleDelete = (habit: HabitType, closeSwipeable: () => void) => {
+    if (!user?.id) return;
+
+    showConfirmAlert(
+      'Delete Habit',
+      `Are you sure you want to delete entire "${habit.name}"?`,
+      async () => {
+        setLoading(true);
+
+        // Delete habit from Firebase
+        let res = await deleteHabitsForUser(habit, user?.id);
+
+        // Cancel associated notifications
+        if (habit.id) {
+          await NotificationService.cancelHabitNotification(habit.id);
+        }
+
+        if (res.success) {
+          setLoading(false);
+          // Update local state
+          dispatch(
+            setAllHabits(allHabits.filter((h: HabitType) => h.id !== habit.id)),
+          );
+        } else {
+          setLoading(false);
+        }
+      },
+      closeSwipeable,
+      'Delete',
+      'Cancel',
+    );
+  };
+
+  /**
+   * Handles navigation to habit statistics screen
+   * @param habit - The habit to view statistics for
+   */
+  const handleStatisticsPress = (habit: HabitType) => {
+    navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
+  };
+
+  /**
+   * Handles navigation to habit creation screen
+   */
+  const handleCreateHabit = () => {
+    navigate(ScreenRoutes.AddEditHabitScreen);
+  };
+
+  /**
+   * Handles navigation to habit editing screen
+   * @param habit - The habit to edit
+   */
+  const handleEditHabit = (habit: HabitType) => {
+    navigate(ScreenRoutes.AddEditHabitScreen, { habit });
+  };
+
+  // Render methods
+
+  /**
+   * Renders individual habit list items
+   * @param item - Habit object to render
+   * @returns JSX element for the habit item
+   */
   const renderItem = ({ item }: { item: HabitType }) => {
     if (!swipeableRefs.current[item.id || item.userId]) {
       swipeableRefs.current[item.id || item.userId] = React.createRef();
     }
+
     return (
       <HabitListItem
         ref={swipeableRefs.current[item.id || item.userId]}
         habit={item}
-        onPress={() =>
-          navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
+        onPress={() => handleEditHabit(item)}
+        onDelete={(habit, closeSwipeable) =>
+          handleDelete(habit, closeSwipeable)
         }
-        onDelete={(habit, closeSwipeable) => {
-          if (!user?.id) {
-            return;
-          }
-
-          showConfirmAlert(
-            'Delete Habit',
-            `Are you sure you want to delete entire "${habit.name}"?`,
-            async () => {
-              setLoading(true);
-              let res = await deleteHabitsForUser(habit, user?.id);
-              if (habit.id) {
-                await NotificationService.cancelHabitNotification(habit.id);
-              }
-              if (res.success) {
-                setLoading(false);
-                dispatch(
-                  setAllHabits(
-                    allHabits.filter((h: HabitType) => h.id !== habit.id),
-                  ),
-                );
-              } else {
-                setLoading(false);
-              }
-            },
-            closeSwipeable,
-            'Delete',
-            'Cancel',
-          );
-        }}
         onComplete={handleComplete}
-        onStatisticsPress={habit => {
-          navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
-        }}
+        onStatisticsPress={handleStatisticsPress}
         enableLeftSwipe={false}
         refreshKey={refreshKey}
       />
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <AppHeader title="Habits" showBackButton={false} />
-      <AppLoader visible={loading} size="large" />
+  /**
+   * Renders the search input field
+   * @returns JSX element for the search functionality
+   */
+  const renderSearchSection = () => (
+    <AppTextInput
+      label=""
+      iconName="search"
+      placeholder="Search habits"
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      rightIcon={
+        searchQuery.trim() !== '' ? (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <MaterialIcons
+              name="close"
+              size={20}
+              color={colors.inputPlaceholder}
+            />
+          </TouchableOpacity>
+        ) : null
+      }
+    />
+  );
 
-      {/* Search */}
-      <AppTextInput
-        label=""
-        iconName="search"
-        placeholder="Search habits"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        rightIcon={
-          searchQuery.trim() !== '' ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <MaterialIcons
-                name="close"
-                size={20}
-                color={colors.inputPlaceholder}
-              />
-            </TouchableOpacity>
-          ) : null
-        }
-      />
-
-      {/* Color Picker */}
+  /**
+   * Renders the color filter section
+   * @returns JSX element for color-based filtering
+   */
+  const renderColorFilter = () => (
+    <>
       <Text style={styles.sectionTitle}>Filter by color tags</Text>
       <View style={styles.colorRow}>
         {/* Reset color option */}
@@ -206,41 +303,73 @@ const HabitListScreen = () => {
           />
         ))}
       </View>
+    </>
+  );
 
-      {filteredList.length <= 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={textStyles.title}>No habits found</Text>
+  /**
+   * Renders the empty state when no habits are found
+   * @returns JSX element for empty state display
+   */
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={textStyles.title}>No habits found</Text>
 
-          {searchQuery.trim() === '' ? (
-            <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
-            >
-              <Text style={styles.emptyStateButtonText}>Create a Habit</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : (
-        <FlatList
-          data={filteredList}
-          keyExtractor={(item: HabitType, index: number) =>
-            (item.id || item.userId.toString()) + index.toString()
-          }
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={{ textAlign: 'center', marginTop: 32 }}>
-              No habits found.
-            </Text>
-          }
-        />
-      )}
+      {searchQuery.trim() === '' ? (
+        <TouchableOpacity
+          style={styles.emptyStateButton}
+          onPress={handleCreateHabit}
+        >
+          <Text style={styles.emptyStateButtonText}>Create a Habit</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  /**
+   * Renders the habit list when habits exist
+   * @returns JSX element for the habit list
+   */
+  const renderHabitList = () => {
+    if (filteredList.length <= 0) {
+      return renderEmptyState();
+    }
+
+    return (
+      <FlatList
+        data={filteredList}
+        keyExtractor={(item: HabitType, index: number) =>
+          (item.id || item.userId.toString()) + index.toString()
+        }
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 32 }}>
+            No habits found.
+          </Text>
+        }
+      />
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <AppHeader title="Habits" showBackButton={false} />
+      <AppLoader visible={loading} size="large" />
+
+      {renderSearchSection()}
+      {renderColorFilter()}
+      {renderHabitList()}
     </SafeAreaView>
   );
 };
 
 export default HabitListScreen;
 
+/**
+ * Generates styles for the HabitListScreen component
+ * @param colors - Theme colors object containing surface, text, primary, inputPlaceholder, white, black, and inputBg colors
+ * @returns StyleSheet object with component styles including container, search, filters, and list styling
+ */
 function getStyles(colors: any) {
   return StyleSheet.create({
     emptyContainer: {

@@ -20,19 +20,23 @@ import {
 import { getApp } from '@react-native-firebase/app';
 import moment from 'moment';
 
-// Helper to get Firestore instance
+// Firestore instance and collections
 const db = getFirestore(getApp());
-
 const usersCollection = collection(db, 'users');
 const habitsCollection = collection(db, 'habits');
 const journalsCollection = collection(db, 'journals');
 
 // ========================================================================
-// AUTHENTICATION
+// AUTHENTICATION SERVICES
 // ========================================================================
 
 /**
- * Creates a new user with email and password and stores user data in Firestore.
+ * Creates a new user account with email and password
+ *
+ * @param name - User's display name
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Promise with success status and user data or error message
  */
 export const firebaseSignUp = async (
   name: string,
@@ -61,7 +65,11 @@ export const firebaseSignUp = async (
 };
 
 /**
- * Signs in a user with email and password.
+ * Authenticates a user with email and password
+ *
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Promise with success status and message
  */
 export const firebaseLogin = async (
   email: string,
@@ -80,7 +88,9 @@ export const firebaseLogin = async (
 };
 
 /**
- * Logs out the current user.
+ * Signs out the currently authenticated user
+ *
+ * @returns Promise with success status and message
  */
 export const firebaseLogout = async (): Promise<BaseResponseType> => {
   try {
@@ -92,11 +102,14 @@ export const firebaseLogout = async (): Promise<BaseResponseType> => {
 };
 
 // ========================================================================
-// HABITS
+// HABIT MANAGEMENT SERVICES
 // ========================================================================
 
 /**
- * A reusable query for fetching habits for a user.
+ * Creates a reusable query for fetching habits for a specific user
+ *
+ * @param userId - The user's unique identifier
+ * @returns Firestore query object
  */
 const getHabitsQuery = (userId: string) =>
   query(
@@ -106,7 +119,10 @@ const getHabitsQuery = (userId: string) =>
   );
 
 /**
- * Adds a new habit to Firestore.
+ * Adds a new habit to Firestore
+ *
+ * @param habit - Habit data without ID and createdAt fields
+ * @returns Promise with success status and created habit data or error message
  */
 export const addHabitToFirestore = async (
   habit: Omit<HabitType, 'id' | 'createdAt'>,
@@ -125,6 +141,7 @@ export const addHabitToFirestore = async (
     } else {
       docRef = addDoc(habitsCollection, newBody);
     }
+
     return {
       success: true,
       data: { ...habit, id: docRef.id, createdAt: new Date().toISOString() },
@@ -136,7 +153,10 @@ export const addHabitToFirestore = async (
 };
 
 /**
- * Updates an existing habit in Firestore.
+ * Updates an existing habit in Firestore
+ *
+ * @param habit - Complete habit object with ID
+ * @returns Promise with success status and message
  */
 export const updateHabitInFirestore = async (
   habit: HabitType,
@@ -151,7 +171,11 @@ export const updateHabitInFirestore = async (
 };
 
 /**
- * Subscribes to real-time updates for a user's habits.
+ * Subscribes to real-time updates for a user's habits
+ *
+ * @param userId - The user's unique identifier
+ * @param onUpdate - Callback function to handle habit updates
+ * @returns Unsubscribe function for the listener
  */
 export const subscribeToHabitsForUser = (
   userId: string,
@@ -167,17 +191,25 @@ export const subscribeToHabitsForUser = (
 };
 
 // ========================================================================
-// HABIT COMPLETION & STREAKS
+// HABIT COMPLETION & STREAK SERVICES
 // ========================================================================
 
 /**
- * Gets the sub-collection of completed habits for a user.
+ * Gets the sub-collection reference for completed habits for a user
+ *
+ * @param userId - The user's unique identifier
+ * @returns Firestore collection reference
  */
 const getCompletedHabitsCollection = (userId: string) =>
   collection(db, 'users', userId, 'completedHabits');
 
 /**
- * Tracks the completion of a habit for a user on a specific date.
+ * Tracks the completion of a habit for a user on a specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @param trackingDate - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and message
  */
 export const trackHabitCompletion = async (
   userId: string,
@@ -197,7 +229,12 @@ export const trackHabitCompletion = async (
 };
 
 /**
- * Subscribes to real-time updates for completed habit IDs for a user on a specific date.
+ * Subscribes to real-time updates for completed habit IDs for a user on a specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param date - Date string in YYYY-MM-DD format
+ * @param onUpdate - Callback function to handle completion updates
+ * @returns Unsubscribe function for the listener
  */
 export const subscribeToCompletedHabitsForDate = (
   userId: string,
@@ -217,7 +254,11 @@ export const subscribeToCompletedHabitsForDate = (
 };
 
 /**
- * Fetches all completion dates for a specific habit.
+ * Fetches all completion dates for a specific habit
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @returns Promise with success status and array of completion dates
  */
 export async function fetchCompletedHabitsForHabit(
   userId: string,
@@ -243,7 +284,10 @@ export async function fetchCompletedHabitsForHabit(
 }
 
 /**
- * Calculates the current and best streaks from a sorted list of dates.
+ * Calculates the current and best streaks from a sorted list of completion dates
+ *
+ * @param dates - Array of completion date strings in YYYY-MM-DD format
+ * @returns Object containing current and best streak counts
  */
 export function calculateStreaks(dates: string[]): {
   currentStreak: number;
@@ -286,7 +330,11 @@ export function calculateStreaks(dates: string[]): {
 }
 
 /**
- * Fetches the streak data for a specific habit.
+ * Fetches the complete streak data for a specific habit
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @returns Promise with success status and streak data including completion count
  */
 export async function getHabitStreaks(
   userId: string,
@@ -312,7 +360,11 @@ export async function getHabitStreaks(
 }
 
 /**
- * Deletes a habit and all its completion records.
+ * Deletes a habit and all its completion records using a batch operation
+ *
+ * @param habit - The habit object to delete
+ * @param userId - The user's unique identifier
+ * @returns Promise with success status and message
  */
 export const deleteHabitsForUser = async (
   habit: HabitType,
@@ -338,7 +390,12 @@ export const deleteHabitsForUser = async (
 };
 
 /**
- * Deletes a completed habit record for a specific user, habit, and date.
+ * Deletes a completed habit record for a specific user, habit, and date
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @param date - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and message
  */
 export const deleteHabitCompletionForDate = async (
   userId: string,
@@ -355,11 +412,14 @@ export const deleteHabitCompletionForDate = async (
 };
 
 // ========================================================================
-// JOURNALS
+// JOURNAL MANAGEMENT SERVICES
 // ========================================================================
 
 /**
- * Creates or updates a journal entry for a specific date.
+ * Creates or updates a journal entry for a specific date
+ *
+ * @param journal - Journal data without ID field
+ * @returns Promise with success status and saved journal data or error message
  */
 export const saveJournalEntry = async (
   journal: Omit<JournalType, 'id'>,
@@ -384,7 +444,11 @@ export const saveJournalEntry = async (
 };
 
 /**
- * Fetches a single journal entry for a user and date.
+ * Fetches a single journal entry for a user and specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param journalDate - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and journal data or null if not found
  */
 export const fetchJournalEntry = async (
   userId: string,
@@ -411,7 +475,12 @@ export const fetchJournalEntry = async (
 };
 
 /**
- * Fetches all journal entries for a user within a date range.
+ * Fetches all journal entries for a user within a specified date range
+ *
+ * @param userId - The user's unique identifier
+ * @param startDate - Start date string in YYYY-MM-DD format
+ * @param endDate - End date string in YYYY-MM-DD format
+ * @returns Promise with success status and array of journal entries
  */
 export const fetchJournalsForUserInRange = async (
   userId: string,
@@ -436,6 +505,12 @@ export const fetchJournalsForUserInRange = async (
   }
 };
 
+/**
+ * Fetches all journal entries for a user, ordered by date (newest first)
+ *
+ * @param userId - The user's unique identifier
+ * @returns Promise with success status and array of all journal entries
+ */
 export const fetchAllJournalsForUser = async (
   userId: string,
 ): Promise<BaseResponseType<JournalType[]>> => {
@@ -455,6 +530,13 @@ export const fetchAllJournalsForUser = async (
   }
 };
 
+/**
+ * Deletes a specific journal entry by ID
+ *
+ * @param userId - The user's unique identifier
+ * @param journalId - The journal entry's unique identifier
+ * @returns Promise with success status and message
+ */
 export const deleteJournalEntry = async (
   userId: string,
   journalId: string,

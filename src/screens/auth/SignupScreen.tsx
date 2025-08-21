@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+// Local imports
 import { resetAndNavigate } from '@/utils/NavigationUtils';
 import { AppStrings } from '@/utils/AppStrings';
 import { ScreenRoutes } from '@/utils/screen_routes';
@@ -25,11 +27,31 @@ import { setUserData } from '@/redux/slices/authSlice';
 import AppTextInput from '@/component/AppTextInput';
 import { useAppTheme } from '@/utils/ThemeContext';
 
+/**
+ * SignupScreen Component
+ *
+ * A user registration screen that provides account creation functionality for new users.
+ * Handles user input validation, Firebase account creation, and navigation to the main app.
+ *
+ * Features:
+ * - User name, email, and password input fields
+ * - Password confirmation with matching validation
+ * - Password visibility toggles for both password fields
+ * - Input validation and error handling
+ * - Firebase account creation integration
+ * - Navigation to login screen for existing users
+ * - Responsive keyboard handling
+ * - Loading states and error display
+ */
 const SignupScreen: React.FC = () => {
+  // Theme and styles
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
+
+  // Redux hooks
   const dispatch = useAppDispatch();
 
+  // Local state
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -40,37 +62,196 @@ const SignupScreen: React.FC = () => {
     useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // Event handlers
+
+  /**
+   * Handles user signup process
+   * Validates input fields, creates Firebase account, and navigates to main app
+   * @returns Promise<void>
+   */
   const handleSignup = async (): Promise<void> => {
+    // Clear previous errors
+    setError('');
+
+    // Validate required fields
     if (!email || !password || !confirmPassword) {
       setError('All fields are required.');
       return;
     }
+
+    // Validate password confirmation
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-    setError('');
+
     setIsLoading(true);
 
-    const res: Awaited<ReturnType<typeof firebaseSignUp>> =
-      await firebaseSignUp(name, email, password);
+    try {
+      const res: Awaited<ReturnType<typeof firebaseSignUp>> =
+        await firebaseSignUp(name, email, password);
 
-    setIsLoading(false);
-    console.log('Sign up result:', res);
+      if (!res.success) {
+        Alert.alert('Sign up', res.msg);
+      } else {
+        console.log('Successfully registered user data:', res?.data);
 
-    if (!res.success) {
-      Alert.alert('Sign up', res.msg);
-    } else {
-      console.log('on success register user data: ', res?.data);
-      dispatch(
-        setUserData({
-          userData: res.data,
-          isLoggedIn: true,
-        }),
-      );
-      resetAndNavigate(ScreenRoutes.MainTab);
+        // Dispatch user data to Redux store
+        dispatch(
+          setUserData({
+            userData: res.data,
+            isLoggedIn: true,
+          }),
+        );
+
+        // Navigate to main app
+        resetAndNavigate(ScreenRoutes.MainTab);
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  /**
+   * Handles navigation to login screen
+   * Navigates user to existing account login functionality
+   */
+  const handleLogin = (): void => {
+    resetAndNavigate(ScreenRoutes.LoginScreen);
+  };
+
+  /**
+   * Toggles password visibility for main password field
+   * Switches between showing and hiding the password text
+   */
+  const togglePasswordVisibility = (): void => {
+    setShowPassword(!showPassword);
+  };
+
+  /**
+   * Toggles password visibility for confirm password field
+   * Switches between showing and hiding the confirm password text
+   */
+  const toggleConfirmPasswordVisibility = (): void => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  // Render methods
+
+  /**
+   * Renders the app logo and branding section
+   * @returns JSX element for the logo display
+   */
+  const renderLogoSection = () => (
+    <View style={styles.logoContainer}>
+      <View style={styles.logoCircle}>
+        <FontAwesome name="leaf" size={48} color={colors.white} />
+      </View>
+    </View>
+  );
+
+  /**
+   * Renders the main signup form
+   * @returns JSX element for the signup form
+   */
+  const renderSignupForm = () => (
+    <View style={styles.card}>
+      <Text style={styles.title}>{'Sign Up'}</Text>
+      <Text style={styles.subtitle}>
+        {'Create a new account to get started.'}
+      </Text>
+
+      {/* Name field */}
+      <AppTextInput
+        label={AppStrings.userName}
+        iconName="person"
+        placeholder={AppStrings.userNamePlaceholder}
+        keyboardType="default"
+        autoCapitalize="none"
+        value={name}
+        onChangeText={setName}
+        returnKeyType="next"
+      />
+
+      {/* Email field */}
+      <AppTextInput
+        label={AppStrings.emailLabel}
+        iconName="alternate-email"
+        placeholder={AppStrings.emailPlaceholder}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
+        returnKeyType="next"
+      />
+
+      {/* Password field */}
+      <AppTextInput
+        label={AppStrings.passwordLabel}
+        iconName="lock-outline"
+        placeholder={AppStrings.passwordPlaceholder}
+        secureTextEntry={!showPassword}
+        value={password}
+        onChangeText={setPassword}
+        returnKeyType="next"
+        rightIcon={
+          <TouchableOpacity onPress={togglePasswordVisibility}>
+            <MaterialIcons
+              name={showPassword ? 'visibility' : 'visibility-off'}
+              size={22}
+              color={colors.inputPlaceholder}
+            />
+          </TouchableOpacity>
+        }
+      />
+
+      {/* Confirm Password field */}
+      <AppTextInput
+        label={'Confirm Password'}
+        iconName="lock-outline"
+        placeholder={'Confirm Password'}
+        secureTextEntry={!showConfirmPassword}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        returnKeyType="done"
+        rightIcon={
+          <TouchableOpacity onPress={toggleConfirmPasswordVisibility}>
+            <MaterialIcons
+              name={showConfirmPassword ? 'visibility' : 'visibility-off'}
+              size={22}
+              color={colors.inputPlaceholder}
+            />
+          </TouchableOpacity>
+        }
+      />
+
+      {/* Error display */}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {/* Signup button */}
+      <AppButton
+        title={AppStrings.signUp}
+        onPress={handleSignup}
+        style={styles.button}
+      />
+    </View>
+  );
+
+  /**
+   * Renders the footer section with login link
+   * @returns JSX element for the footer
+   */
+  const renderFooter = () => (
+    <View style={styles.footerContainer}>
+      <Text style={styles.footerText}>{AppStrings.alreadyHaveAnAccount}</Text>
+      <TouchableOpacity onPress={handleLogin}>
+        <Text style={styles.signupText}>{AppStrings.loginButton}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -86,100 +267,9 @@ const SignupScreen: React.FC = () => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.logoContainer}>
-              <View style={styles.logoCircle}>
-                <FontAwesome name="leaf" size={48} color={colors.white} />
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.title}>{'Sign Up'}</Text>
-              <Text style={styles.subtitle}>
-                {'Create a new account to get started.'}
-              </Text>
-
-              {/* name fields */}
-              <AppTextInput
-                label={AppStrings.userName}
-                iconName="person"
-                placeholder={AppStrings.userNamePlaceholder}
-                keyboardType="default"
-                autoCapitalize="none"
-                value={name}
-                onChangeText={setName}
-                returnKeyType="next"
-              />
-              <AppTextInput
-                label={AppStrings.emailLabel}
-                iconName="alternate-email"
-                placeholder={AppStrings.emailPlaceholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                returnKeyType="next"
-              />
-              <AppTextInput
-                label={AppStrings.passwordLabel}
-                iconName="lock-outline"
-                placeholder={AppStrings.passwordPlaceholder}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-                returnKeyType="next"
-                rightIcon={
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <MaterialIcons
-                      name={showPassword ? 'visibility' : 'visibility-off'}
-                      size={22}
-                      color={colors.inputPlaceholder}
-                    />
-                  </TouchableOpacity>
-                }
-              />
-              <AppTextInput
-                label={'Confirm Password'}
-                iconName="lock-outline"
-                placeholder={'Confirm Password'}
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                returnKeyType="done"
-                rightIcon={
-                  <TouchableOpacity
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    <MaterialIcons
-                      name={
-                        showConfirmPassword ? 'visibility' : 'visibility-off'
-                      }
-                      size={22}
-                      color={colors.inputPlaceholder}
-                    />
-                  </TouchableOpacity>
-                }
-              />
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-              <AppButton
-                title={AppStrings.signUp}
-                onPress={handleSignup}
-                style={styles.button}
-              />
-              <View style={styles.footerContainer}>
-                <Text style={styles.footerText}>
-                  {AppStrings.alreadyHaveAnAccount}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => resetAndNavigate(ScreenRoutes.LoginScreen)}
-                >
-                  <Text style={styles.signupText}>
-                    {AppStrings.loginButton}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            {renderLogoSection()}
+            {renderSignupForm()}
+            {renderFooter()}
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -187,6 +277,13 @@ const SignupScreen: React.FC = () => {
   );
 };
 
+export default SignupScreen;
+
+/**
+ * Generates styles for the SignupScreen component
+ * @param colors - Theme colors object containing surface, cardBg, text, primary, subtitle, cardShadow, inputPlaceholder, white, and error colors
+ * @returns StyleSheet object with component styles including layout, cards, inputs, buttons, and error display
+ */
 const getStyles = (colors: any) =>
   StyleSheet.create({
     safeArea: {
@@ -307,5 +404,3 @@ const getStyles = (colors: any) =>
       marginLeft: 4,
     },
   });
-
-export default SignupScreen;

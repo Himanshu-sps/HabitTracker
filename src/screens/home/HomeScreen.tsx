@@ -7,7 +7,13 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import React, { useRef, useState, useEffect } from 'react';
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { setAllHabits, setTodaysHabits } from '@/redux/slices/habitSlice';
 import AppSpacer from '@/component/AppSpacer';
@@ -50,23 +56,50 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import AppCustomModal from '@/component/AppCustomModal';
 import AppButton from '@/component/AppButton';
 
+/**
+ * HomeScreen - Main dashboard screen for habit tracking
+ *
+ * Features:
+ * - Display today's habits and progress
+ * - Track habit completion
+ * - Show motivational messages
+ * - Handle user profile and logout
+ * - Celebrate achievements with confetti
+ * - Prompt for journal updates
+ *
+ * Performance Optimizations:
+ * - Memoized progress calculation
+ * - Callback memoization for event handlers
+ * - Optimized FlatList rendering
+ * - Efficient state management
+ */
 const HomeScreen = () => {
+  // Theme and styling
   const { colors } = useAppTheme();
   const textStyles = getAppTextStyles(colors);
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(colors, insets);
+
+  // State management
   const [loading, setLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [activeTodayCount, setActiveTodayCount] = useState(0);
   const [refreshId, setRefreshId] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
-  const avatarRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
-  const insets = useSafeAreaInsets();
-  const styles = getStyles(colors, insets);
   const [showJournalChat, setShowJournalChat] = useState(false);
-  const isFocused = useIsFocused();
-  const pendingConfettiRef = useRef(false);
   const [showJournalUpdateModal, setShowJournalUpdateModal] = useState(false);
   const [triggerConfetti, setTriggerConfetti] = useState(false);
+
+  // Refs
+  const avatarRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
+  const pendingConfettiRef = useRef(false);
+  const swipeableRefs = useRef<{ [key: string]: any }>({});
+
+  // Hooks
+  const isFocused = useIsFocused();
+  const dispatch = useAppDispatch();
+  const rdxDispatch = useDispatch();
 
   const user = useAppSelector(
     (state: AppRootState & any) => state.authReducer.userData,
@@ -80,10 +113,14 @@ const HomeScreen = () => {
     (state: AppRootState) => state.habitReducer.allHabits,
   );
 
-  const dispatch = useAppDispatch();
-  const rdxDispatch = useDispatch();
-
-  const handleLogout = async () => {
+  /**
+   * Handles user logout process
+   * - Logs out from Firebase
+   * - Cancels all scheduled habit notifications
+   * - Resets user data in Redux store
+   * - Navigates to authentication stack
+   */
+  const handleLogout = useCallback(async () => {
     const res = await firebaseLogout();
     if (res.success) {
       // Cancel all scheduled notifications for all habits
@@ -95,7 +132,7 @@ const HomeScreen = () => {
       rdxDispatch(resetUserData());
       resetAndNavigate(ScreenRoutes.AuthStack);
     }
-  };
+  }, [allHabits, rdxDispatch]);
 
   const menuItems = [
     {
@@ -109,7 +146,6 @@ const HomeScreen = () => {
       icon: 'logout',
     },
   ];
-  const swipeableRefs = useRef<{ [key: string]: any }>({});
   const motivation = useAppSelector(
     (state: AppRootState) => state.motivation.motivationMessage,
   );
@@ -117,6 +153,13 @@ const HomeScreen = () => {
     (state: AppRootState) => state.motivation.loading,
   );
 
+  /**
+   * Main effect for habit management and real-time updates
+   * - Subscribes to user habits and completion status
+   * - Filters active habits for today
+   * - Syncs notifications and triggers confetti celebration
+   * - Manages cleanup of Firebase subscriptions
+   */
   useEffect(() => {
     if (!user?.id) return;
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
@@ -171,6 +214,12 @@ const HomeScreen = () => {
     return () => unsubscribeHabits();
   }, [user?.id, dispatch, refreshId]);
 
+  /**
+   * App initialization effect
+   * - Requests notification permissions
+   * - Sets up notification channels
+   * - Fetches initial motivation message
+   */
   useEffect(() => {
     // Request notification permissions on app start
     notifee.requestPermission().then(authStatus => {
@@ -180,7 +229,12 @@ const HomeScreen = () => {
     dispatch(fetchMotivation());
   }, []);
 
-  // Re-check journal on each focus (e.g., after deletion from backend)
+  /**
+   * Journal entry check effect - runs on screen focus
+   * - Checks if user has journal entry for today
+   * - Shows journal chat prompt if no entry exists
+   * - Handles backend synchronization
+   */
   useEffect(() => {
     if (!isFocused || !user?.id) return;
     const today = formatDate(new Date(), DATE_FORMAT_ZERO);
@@ -190,13 +244,22 @@ const HomeScreen = () => {
       .catch(() => setShowJournalChat(true));
   }, [isFocused, user?.id, dispatch]);
 
+  /**
+   * Journal chat navigation effect
+   * - Automatically navigates to journal bot when chat is needed
+   */
   useEffect(() => {
     if (showJournalChat) {
       navigate(ScreenRoutes.JournalBotScreen);
     }
   }, [showJournalChat]);
 
-  // Trigger confetti when modal becomes visible
+  /**
+   * Confetti trigger effect for achievement modal
+   * - Triggers confetti animation when modal becomes visible
+   * - Includes small delay to ensure modal is fully rendered
+   * - Resets confetti state when modal closes
+   */
   useEffect(() => {
     if (showJournalUpdateModal) {
       // Small delay to ensure modal is fully rendered
@@ -209,65 +272,96 @@ const HomeScreen = () => {
     }
   }, [showJournalUpdateModal]);
 
-  const handleDeleteAction = (
-    habit: HabitType,
-    closeSwipeable: () => void,
-  ): void => {
-    showConfirmAlert(
-      'Delete Habit',
-      `Are you sure you want to delete entire "${habit.name}"?`,
-      async () => {
-        setLoading(true);
-        await deleteHabitsForUser(habit, user?.id);
-        if (habit.id) {
-          await NotificationService.cancelHabitNotification(habit.id);
-        }
-        setLoading(false);
-      },
-      closeSwipeable,
-      'Delete',
-      'Cancel',
-    );
-  };
+  /**
+   * Handles habit deletion with confirmation dialog
+   * @param habit - The habit to be deleted
+   * @param closeSwipeable - Function to close the swipeable item
+   */
+  const handleDeleteAction = useCallback(
+    (habit: HabitType, closeSwipeable: () => void): void => {
+      showConfirmAlert(
+        'Delete Habit',
+        `Are you sure you want to delete entire "${habit.name}"?`,
+        async () => {
+          setLoading(true);
+          await deleteHabitsForUser(habit, user?.id);
+          if (habit.id) {
+            await NotificationService.cancelHabitNotification(habit.id);
+          }
+          setLoading(false);
+        },
+        closeSwipeable,
+        'Delete',
+        'Cancel',
+      );
+    },
+    [user?.id],
+  );
 
-  const handleCompleteAction = async (habit: HabitType): Promise<void> => {
-    if (!user?.id || !habit.id) return;
-    // Mark that we should celebrate if this action completes the last habit
-    pendingConfettiRef.current = true;
-    const today = formatDate(new Date(), DATE_FORMAT_ZERO);
-    await trackHabitCompletion(user.id, habit.id, today);
-    // Mark as completed for notification logic
-    habit.completed = true;
-    console.log(
-      `[HomeScreen] Habit completed: ${habit.name} (id: ${habit.id}). Cancelling notification.`,
-    );
-    await NotificationService.cancelHabitNotification(habit.id);
-    setRefreshId(prev => prev + 1);
-  };
+  /**
+   * Handles habit completion
+   * - Tracks completion in Firebase
+   * - Cancels scheduled notifications
+   * - Triggers confetti celebration if all habits are completed
+   * @param habit - The habit being completed
+   */
+  const handleCompleteAction = useCallback(
+    async (habit: HabitType): Promise<void> => {
+      if (!user?.id || !habit.id) return;
+      // Mark that we should celebrate if this action completes the last habit
+      pendingConfettiRef.current = true;
+      const today = formatDate(new Date(), DATE_FORMAT_ZERO);
+      await trackHabitCompletion(user.id, habit.id, today);
+      // Mark as completed for notification logic
+      habit.completed = true;
+      console.log(
+        `[HomeScreen] Habit completed: ${habit.name} (id: ${habit.id}). Cancelling notification.`,
+      );
+      await NotificationService.cancelHabitNotification(habit.id);
+      setRefreshId(prev => prev + 1);
+    },
+    [user?.id],
+  );
 
-  const renderItem: ListRenderItem<HabitType> = ({ item }) => {
-    if (!swipeableRefs.current[item.id || item.userId]) {
-      swipeableRefs.current[item.id || item.userId] = React.createRef();
-    }
-    return (
-      <HabitListItem
-        ref={swipeableRefs.current[item.id || item.userId]}
-        habit={item}
-        onPress={() =>
-          navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
-        }
-        onDelete={handleDeleteAction}
-        onComplete={handleCompleteAction}
-        onStatisticsPress={habit => {
-          navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
-        }}
-      />
-    );
-  };
+  /**
+   * Renders individual habit list item
+   * @param item - Habit data to render
+   * @returns HabitListItem component
+   */
+  const renderItem = useCallback<ListRenderItem<HabitType>>(
+    ({ item }) => {
+      if (!swipeableRefs.current[item.id || item.userId]) {
+        swipeableRefs.current[item.id || item.userId] = React.createRef();
+      }
+      return (
+        <HabitListItem
+          ref={swipeableRefs.current[item.id || item.userId]}
+          habit={item}
+          onPress={() =>
+            navigate(ScreenRoutes.AddEditHabitScreen, { habit: item })
+          }
+          onDelete={handleDeleteAction}
+          onComplete={handleCompleteAction}
+          onStatisticsPress={habit => {
+            navigate(ScreenRoutes.HabitStatisticsScreen, { habit });
+          }}
+        />
+      );
+    },
+    [handleDeleteAction, handleCompleteAction],
+  );
 
-  const progress = activeTodayCount > 0 ? completedCount / activeTodayCount : 0;
+  // Memoized progress calculation
+  const progress = useMemo(
+    () => (activeTodayCount > 0 ? completedCount / activeTodayCount : 0),
+    [activeTodayCount, completedCount],
+  );
 
-  const getProgressIcon = () => {
+  /**
+   * Returns appropriate progress icon based on completion percentage
+   * @returns Icon component representing progress state
+   */
+  const getProgressIcon = useCallback(() => {
     if (progress === 0) {
       return <Icon name="flower-outline" size={28} color={colors.subtitle} />;
     }
@@ -280,9 +374,15 @@ const HomeScreen = () => {
       return <Icon name="flower-tulip" size={28} color={colors.primary} />;
     }
     return <Icon name="trophy" size={28} color={'#FFD700'} />;
-  };
+  }, [progress, colors.subtitle, colors.primary]);
 
-  const renderEmptyComponent = () => {
+  /**
+   * Renders empty state component based on habit status
+   * - Shows celebration message if all habits are completed
+   * - Shows create habit prompt if no habits exist
+   * @returns Empty state component
+   */
+  const renderEmptyComponent = useCallback(() => {
     if (activeTodayCount > 0) {
       return (
         <View style={styles.emptyStateContainer}>
@@ -310,7 +410,7 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [activeTodayCount, colors.primary, colors.subtitle, styles]);
 
   return (
     <View style={styles.container}>
@@ -352,9 +452,10 @@ const HomeScreen = () => {
       </View>
       <FlatList
         data={todaysHabits}
-        keyExtractor={(item: HabitType, index: number) =>
-          (item.id || item.userId.toString()) + index.toString()
-        }
+        keyExtractor={useCallback(
+          (item: HabitType) => item.id || item.userId.toString(),
+          [],
+        )}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -477,6 +578,12 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
+/**
+ * Generates styles for the HomeScreen component
+ * @param colors - Theme colors from the app theme
+ * @param insets - Safe area insets for proper spacing
+ * @returns StyleSheet object with all component styles
+ */
 function getStyles(colors: any, insets: any) {
   return StyleSheet.create({
     container: {
