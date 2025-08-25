@@ -14,6 +14,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
+import { Animated } from 'react-native';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { setAllHabits, setTodaysHabits } from '@/redux/slices/habitSlice';
 import AppSpacer from '@/component/AppSpacer';
@@ -90,6 +91,8 @@ const HomeScreen = () => {
   const [showJournalChat, setShowJournalChat] = useState(false);
   const [showJournalUpdateModal, setShowJournalUpdateModal] = useState(false);
   const [triggerConfetti, setTriggerConfetti] = useState(false);
+  const [isFabVisible, setIsFabVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Refs
   const avatarRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
@@ -100,6 +103,29 @@ const HomeScreen = () => {
   const isFocused = useIsFocused();
   const dispatch = useAppDispatch();
   const rdxDispatch = useDispatch();
+
+  /**
+   * Handles scroll events to show/hide FAB
+   * Hides FAB when scrolling down, shows when scrolling up or stopping
+   * @param event - Scroll event from FlatList
+   */
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+
+      // Hide FAB when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY && currentScrollY > 10) {
+        // Scrolling down and not at the very top
+        setIsFabVisible(false);
+      } else if (currentScrollY < lastScrollY || currentScrollY <= 10) {
+        // Scrolling up or at the top
+        setIsFabVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    },
+    [lastScrollY],
+  );
 
   const user = useAppSelector(
     (state: AppRootState & any) => state.authReducer.userData,
@@ -459,6 +485,8 @@ const HomeScreen = () => {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={renderEmptyComponent}
         ListHeaderComponent={
           <>
@@ -504,13 +532,23 @@ const HomeScreen = () => {
         }
       />
       {activeTodayCount > 0 && (
-        <TouchableOpacity
-          style={styles.fab}
-          activeOpacity={0.7}
-          onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
+        <Animated.View
+          style={[
+            styles.fab,
+            {
+              opacity: isFabVisible ? 1 : 0,
+              transform: [{ scale: isFabVisible ? 1 : 0.8 }],
+            },
+          ]}
         >
-          <MaterialIcons name="add" size={32} color={colors.white} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.fabButton}
+            activeOpacity={0.7}
+            onPress={() => navigate(ScreenRoutes.AddEditHabitScreen)}
+          >
+            <MaterialIcons name="add" size={32} color={colors.white} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
       <CustomMenu
         visible={menuVisible}
@@ -644,6 +682,11 @@ function getStyles(colors: any, insets: any) {
       position: 'absolute',
       right: 24,
       bottom: 32,
+      width: 56,
+      height: 56,
+      zIndex: 100,
+    },
+    fabButton: {
       backgroundColor: colors.primary,
       width: 56,
       height: 56,
@@ -655,7 +698,6 @@ function getStyles(colors: any, insets: any) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
-      zIndex: 100,
     },
     progressCard: {
       backgroundColor: colors.cardBg,

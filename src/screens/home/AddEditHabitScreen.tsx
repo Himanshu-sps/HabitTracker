@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
+import { fetch } from '@react-native-community/netinfo';
 
 // Local imports
 import AppButton from '@/component/AppButton';
@@ -170,6 +171,10 @@ const AddEditHabitScreen = () => {
       return;
     }
 
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
     setLoading(true);
 
     const habitData = {
@@ -193,21 +198,24 @@ const AddEditHabitScreen = () => {
       });
 
       // If editing for today, and time is changed, remove today's completion record
-      const today = moment().format(DATE_FORMAT_ZERO);
-      const wasCompletedToday =
-        habitToEdit.reminderTime !== habitData.reminderTime &&
-        moment(today).isBetween(
-          habitData.startDate,
-          habitData.endDate,
-          undefined,
-          '[]',
-        );
+      // Only do this when online to avoid hanging
+      if (isConnected) {
+        const today = moment().format(DATE_FORMAT_ZERO);
+        const wasCompletedToday =
+          habitToEdit.reminderTime !== habitData.reminderTime &&
+          moment(today).isBetween(
+            habitData.startDate,
+            habitData.endDate,
+            undefined,
+            '[]',
+          );
 
-      if (wasCompletedToday && habitToEdit.id) {
-        try {
-          await deleteHabitCompletionForDate(user.id, habitToEdit.id, today);
-        } catch (e) {
-          // Ignore error, not critical
+        if (wasCompletedToday && habitToEdit.id) {
+          try {
+            await deleteHabitCompletionForDate(user.id, habitToEdit.id, today);
+          } catch (e) {
+            // Ignore error, not critical
+          }
         }
       }
     } else {
@@ -216,8 +224,18 @@ const AddEditHabitScreen = () => {
     }
 
     setLoading(false);
+
     if (res.success) {
-      goBack();
+      if (!isConnected) {
+        // Show offline message but still navigate back
+        Alert.alert(
+          'Offline Mode',
+          "Habit saved locally. It will be synced to the cloud when you're back online.",
+          [{ text: 'OK', onPress: goBack }],
+        );
+      } else {
+        goBack();
+      }
     } else {
       Alert.alert('Error', res.msg || 'Failed to save habit');
     }

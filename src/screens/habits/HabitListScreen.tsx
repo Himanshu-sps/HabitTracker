@@ -5,6 +5,7 @@ import {
   View,
   FlatList,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -73,6 +74,8 @@ const HabitListScreen = () => {
   const [filteredList, setFilteredList] = useState<HabitType[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFabVisible, setIsFabVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Effects
 
@@ -133,6 +136,26 @@ const HabitListScreen = () => {
   );
 
   // Event handlers
+
+  /**
+   * Handles scroll events to show/hide FAB
+   * Hides FAB when scrolling down, shows when scrolling up or stopping
+   * @param event - Scroll event from FlatList
+   */
+  const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+
+    // Hide FAB when scrolling down, show when scrolling up
+    if (currentScrollY > lastScrollY && currentScrollY > 10) {
+      // Scrolling down and not at the very top
+      setIsFabVisible(false);
+    } else if (currentScrollY < lastScrollY || currentScrollY <= 10) {
+      // Scrolling up or at the top
+      setIsFabVisible(true);
+    }
+
+    setLastScrollY(currentScrollY);
+  };
 
   /**
    * Handles habit completion for a specific habit
@@ -342,6 +365,8 @@ const HabitListScreen = () => {
         }
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <Text style={{ textAlign: 'center', marginTop: 32 }}>
             No habits found.
@@ -359,6 +384,25 @@ const HabitListScreen = () => {
       {renderSearchSection()}
       {renderColorFilter()}
       {renderHabitList()}
+
+      {/* Floating Action Button */}
+      <Animated.View
+        style={[
+          styles.fab,
+          {
+            opacity: isFabVisible ? 1 : 0,
+            transform: [{ scale: isFabVisible ? 1 : 0.8 }],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.fabButton}
+          activeOpacity={0.7}
+          onPress={handleCreateHabit}
+        >
+          <MaterialIcons name="add" size={32} color={colors.white} />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -398,7 +442,7 @@ function getStyles(colors: any) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      marginRight: 8,
+      marginRight: 4,
     },
     emptyStateButton: {
       marginTop: 16,
@@ -411,6 +455,27 @@ function getStyles(colors: any) {
       color: colors.white,
       fontSize: 16,
       fontWeight: 'bold',
+    },
+    fab: {
+      position: 'absolute',
+      right: 24,
+      bottom: 32,
+      width: 56,
+      height: 56,
+      zIndex: 100,
+    },
+    fabButton: {
+      backgroundColor: colors.primary,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
     },
   });
 }

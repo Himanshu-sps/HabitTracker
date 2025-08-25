@@ -163,7 +163,18 @@ export const updateHabitInFirestore = async (
 ): Promise<BaseResponseType> => {
   try {
     if (!habit.id) throw new Error('Habit ID is missing');
-    await updateDoc(doc(habitsCollection, habit.id), habit);
+
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await updateDoc(doc(habitsCollection, habit.id), habit);
+    } else {
+      // When offline, just queue the update operation
+      // Firebase will handle the sync when network is available
+      updateDoc(doc(habitsCollection, habit.id), habit);
+    }
+
     return { success: true, msg: 'Habit updated successfully' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to update habit' };
