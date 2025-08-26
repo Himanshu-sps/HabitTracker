@@ -106,7 +106,6 @@ const LoginScreen: React.FC = () => {
         Alert.alert('Login', response?.msg);
       }
     } catch (error) {
-      console.error('Login error:', error);
       Alert.alert('Login', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

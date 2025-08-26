@@ -49,12 +49,12 @@ export async function analyzeSentiment(
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       },
     );
 
     try {
       // Extract response content from Gemini API
-      console.log('Response from Gemini:', JSON.stringify(response.data));
       const content = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!content) {
@@ -89,17 +89,38 @@ export async function analyzeSentiment(
         msg: 'Sentiment analyzed successfully (Gemini)',
       };
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError);
       return {
         success: false,
         msg: 'Failed to parse Gemini response',
       };
     }
   } catch (apiError: any) {
-    console.error('Gemini API error:', apiError);
+    // Handle different types of errors
+    let errorMessage = 'Failed to analyze sentiment';
+
+    if (
+      apiError.code === 'ECONNABORTED' ||
+      apiError.message?.includes('timeout')
+    ) {
+      errorMessage =
+        'Request timed out. Please check your internet connection and try again.';
+    } else if (
+      apiError.code === 'ERR_NETWORK' ||
+      apiError.message?.includes('Network Error')
+    ) {
+      errorMessage =
+        'Network connection issue. Please check your internet and try again.';
+    } else if (apiError.response?.status === 429) {
+      errorMessage = 'Too many requests. Please try again later.';
+    } else if (apiError.response?.status >= 500) {
+      errorMessage = 'Server error. Please try again later.';
+    } else if (apiError.response?.status >= 400) {
+      errorMessage = 'Invalid request. Please check your input and try again.';
+    }
+
     return {
       success: false,
-      msg: `Failed to analyze sentiment: ${apiError.message}`,
+      msg: errorMessage,
     };
   }
 }
@@ -120,7 +141,7 @@ export async function getMotivationSuggestion(): Promise<string> {
   const prompt = `Give me a short, positive, and actionable motivational message to help someone complete all their daily habits.`;
 
   // Validate API key availability
-  if (GEMINI_API_KEY) {
+  if (!GEMINI_API_KEY) {
     return 'Stay positive and keep going!';
   }
 
@@ -142,6 +163,7 @@ export async function getMotivationSuggestion(): Promise<string> {
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: 15000, // 15 second timeout
       },
     );
 
@@ -149,8 +171,8 @@ export async function getMotivationSuggestion(): Promise<string> {
     return (
       content?.replace(/```/g, '').trim() || 'Stay positive and keep going!'
     );
-  } catch (error) {
-    console.error('Error from Gemini API:', error);
+  } catch (error: any) {
+    // Return fallback message for any error
     return 'Stay positive and keep going!';
   }
 }
@@ -202,6 +224,7 @@ Journal: "${journalEntry}"`;
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       },
     );
 
@@ -237,9 +260,6 @@ Journal: "${journalEntry}"`;
       }
     } catch (parseError) {
       // Fall through to heuristic parsing if JSON parsing fails
-      console.warn(
-        'Failed to parse AI response as JSON, using heuristic fallback',
-      );
     }
 
     // Heuristic fallback: parse by newlines and bullet points
@@ -255,10 +275,29 @@ Journal: "${journalEntry}"`;
 
     return { success: false, msg: 'Unable to parse AI suggestions' };
   } catch (error: any) {
-    console.error('AI suggestion API error:', error);
+    // Handle different types of errors
+    let errorMessage = 'Failed to get AI suggestions';
+
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      errorMessage =
+        'Request timed out. Please check your internet connection and try again.';
+    } else if (
+      error.code === 'ERR_NETWORK' ||
+      error.message?.includes('Network Error')
+    ) {
+      errorMessage =
+        'Network connection issue. Please check your internet and try again.';
+    } else if (error.response?.status === 429) {
+      errorMessage = 'Too many requests. Please try again later.';
+    } else if (error.response?.status >= 500) {
+      errorMessage = 'Server error. Please try again later.';
+    } else if (error.response?.status >= 400) {
+      errorMessage = 'Invalid request. Please check your input and try again.';
+    }
+
     return {
       success: false,
-      msg: `Failed to get AI suggestions: ${error.message}`,
+      msg: errorMessage,
     };
   }
 }

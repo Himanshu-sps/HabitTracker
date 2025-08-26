@@ -82,10 +82,7 @@ export class NotificationService {
         trigger,
       );
     } catch (error) {
-      console.error(
-        `[NotificationService] Error scheduling notification for habit: ${habit.name} (id: ${habit.id}):`,
-        error,
-      );
+      // Error handled silently
     }
   }
 
@@ -93,10 +90,7 @@ export class NotificationService {
     try {
       await notifee.cancelNotification(habitId);
     } catch (error) {
-      console.error(
-        `[NotificationService] Error cancelling notification for habitId: ${habitId}:`,
-        error,
-      );
+      // Error handled silently
     }
   }
 
@@ -111,10 +105,7 @@ export class NotificationService {
           sound: 'default',
         });
       } catch (error) {
-        console.error(
-          '[NotificationService] Error creating Android channel:',
-          error,
-        );
+        // Error handled silently
       }
     }
   }

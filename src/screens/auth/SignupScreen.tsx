@@ -94,8 +94,6 @@ const SignupScreen: React.FC = () => {
       if (!res.success) {
         Alert.alert('Sign up', res.msg);
       } else {
-        console.log('Successfully registered user data:', res?.data);
-
         // Dispatch user data to Redux store
         dispatch(
           setUserData({
@@ -108,7 +106,6 @@ const SignupScreen: React.FC = () => {
         resetAndNavigate(ScreenRoutes.MainTab);
       }
     } catch (error) {
-      console.error('Signup error:', error);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

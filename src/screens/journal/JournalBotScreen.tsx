@@ -28,12 +28,14 @@ import {
   setChatMessages,
   appendChatMessages,
   setIsAnalysisDone,
-  setDraftJournalEntry,
   setAiLoading,
 } from '@/redux/slices/journalSlice';
 import { goBack } from '@/utils/NavigationUtils';
 import AILoader from '@/component/AILoader';
 import { moodList } from '@/utils/AppConstants';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
+import { getNetworkStatus } from '@/utils/NetworkUtils';
+import { showInfoAlert } from '@/utils/AlertUtils';
 
 export const MessageType = {
   GREET: 'greet',
@@ -45,6 +47,7 @@ export const MessageType = {
 const JournalBotScreen = () => {
   const flatListRef = useRef<FlatList>(null);
   const [journalEntry, setJournalEntry] = useState('');
+  const [networkError, setNetworkError] = useState(false);
 
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.authReducer.userData);
@@ -57,15 +60,39 @@ const JournalBotScreen = () => {
   const isAnalysisDone = useAppSelector(
     state => state.journalReducer.isAnalysisDone,
   );
-  const draftJournalEntry = useAppSelector(
-    state => state.journalReducer.draftJournalEntry,
-  );
 
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
 
+  /**
+   * Check if device has internet connectivity
+   * @returns Promise<boolean> - true if connected, false otherwise
+   */
+  const checkNetworkConnectivity = async (): Promise<boolean> => {
+    try {
+      const networkStatus = await getNetworkStatus();
+      const isConnected =
+        networkStatus.isConnected && networkStatus.isInternetReachable;
+      setNetworkError(!isConnected);
+      return isConnected;
+    } catch (error) {
+      setNetworkError(true);
+      return false;
+    }
+  };
+
   const handleCompletion = async () => {
     if (sentimentResult && user?.id) {
+      // Check network connectivity before saving
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        showInfoAlert(
+          'No Internet Connection',
+          "Please check your internet connection and try again. Your journal entry will be saved when you're back online.",
+        );
+        return;
+      }
+
       const journalObj = {
         sentimentResult: sentimentResult,
         journalEntry: journalEntry,
@@ -80,12 +107,22 @@ const JournalBotScreen = () => {
   };
 
   /**
-   *
+   * Handle journal analysis with network connectivity check
    * @returns
    */
   const handleAnalyze = async () => {
-    const textToAnalyze = (journalEntry || draftJournalEntry || '').trim();
+    const textToAnalyze = journalEntry.trim();
     if (!textToAnalyze) return;
+
+    // Check network connectivity before proceeding
+    const isConnected = await checkNetworkConnectivity();
+    if (!isConnected) {
+      showInfoAlert(
+        'No Internet Connection',
+        'Please check your internet connection and try again.',
+      );
+      return;
+    }
 
     Keyboard.dismiss();
     dispatch(setAiLoading(true));
@@ -136,8 +173,6 @@ const JournalBotScreen = () => {
       }),
     ).unwrap();
 
-    console.log(`TAGE ==> ${JSON.stringify(aiHabits.data)}`);
-
     if (aiHabits.success) {
       dispatch(
         appendChatMessages([
@@ -163,13 +198,6 @@ const JournalBotScreen = () => {
     // set analysis flag to true
     dispatch(setIsAnalysisDone(true));
   };
-
-  useEffect(() => {
-    // hydrate input from persisted draft
-    if (draftJournalEntry && !journalEntry) {
-      setJournalEntry(draftJournalEntry);
-    }
-  }, [draftJournalEntry]);
 
   useEffect(() => {
     if (chatMsg.length > 0) {
@@ -219,6 +247,11 @@ const JournalBotScreen = () => {
   }, [chatMsg, isAnalysisDone]);
 
   useEffect(() => {
+    // Check network status when component mounts
+    checkNetworkConnectivity();
+  }, []);
+
+  useEffect(() => {
     // Cleanup state when leaving the screen
     return () => {
       dispatch(resetJournal());
@@ -227,6 +260,7 @@ const JournalBotScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <NetworkStatusSnackbar />
       <AppHeader
         title="AI Journal Assistant"
         showBackButton={true}
@@ -269,7 +303,6 @@ const JournalBotScreen = () => {
               value={journalEntry}
               onChangeText={text => {
                 setJournalEntry(text);
-                dispatch(setDraftJournalEntry(text));
               }}
               multiline
               numberOfLines={4}

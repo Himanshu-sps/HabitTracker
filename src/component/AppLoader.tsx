@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Modal, StyleSheet, View, Text } from 'react-native';
 import { useAppTheme } from '@/utils/ThemeContext';
+import { getAppTextStyles } from '@/utils/AppTextStyles';
 
 interface AppLoaderProps {
   visible: boolean;
@@ -15,12 +16,14 @@ const AppLoader: React.FC<AppLoaderProps> = ({
 }) => {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
+  const textStyles = getAppTextStyles(colors);
+
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.loaderContainer}>
           <ActivityIndicator size={size} color={color || colors.primary} />
-          <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Loading...</Text>
+          <Text style={textStyles.subtitle}>Loading...</Text>
         </View>
       </View>
     </Modal>

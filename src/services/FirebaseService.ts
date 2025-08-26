@@ -285,7 +285,6 @@ export async function fetchCompletedHabitsForHabit(
     const dates = snapshot.docs.map((docSnap: any) => docSnap.data().date);
     return { success: true, data: dates };
   } catch (error: any) {
-    console.error('Error fetching completed habits for habit:', error);
     return {
       success: false,
       msg: error?.message || 'Error fetching completed habits for habit',

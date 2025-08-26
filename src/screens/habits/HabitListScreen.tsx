@@ -33,6 +33,7 @@ import { getAppTextStyles } from '@/utils/AppTextStyles';
 import AppHeader from '@/component/AppHeader';
 import { NotificationService } from '@/services/NotificationService';
 import AppTextInput from '@/component/AppTextInput';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * HabitListScreen Component
@@ -378,6 +379,7 @@ const HabitListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <NetworkStatusSnackbar />
       <AppHeader title="Habits" showBackButton={false} />
       <AppLoader visible={loading} size="large" />
 

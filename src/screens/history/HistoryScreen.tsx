@@ -23,6 +23,7 @@ import { AppRootState } from '@/redux/store';
 import { DATE_FORMAT_ZERO } from '@/utils/DateTimeUtils';
 import { moodList, daysOfWeek } from '@/utils/AppConstants';
 import { fetchHistoryData } from '@/redux/slices/historySlice';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * HistoryScreen Component
@@ -244,6 +245,7 @@ const HistoryScreen = () => {
 
   return (
     <SafeAreaView style={styles.screenBg}>
+      <NetworkStatusSnackbar />
       <AppHeader title="History" showBackButton={false} />
       <FlatList
         data={timelineData}

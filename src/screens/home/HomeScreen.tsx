@@ -56,6 +56,7 @@ import { useIsFocused } from '@react-navigation/native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import AppCustomModal from '@/component/AppCustomModal';
 import AppButton from '@/component/AppButton';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * HomeScreen - Main dashboard screen for habit tracking
@@ -215,10 +216,6 @@ const HomeScreen = () => {
               ...habit,
               completed: completedHabitIds.includes(habit.id ?? ''),
             }));
-            console.log(
-              '[HomeScreen] Calling NotificationService.syncHabitNotifications with:',
-              habitsWithCompletion,
-            );
             NotificationService.syncHabitNotifications(habitsWithCompletion);
 
             // Trigger confetti ONLY when all habits for today are completed
@@ -249,7 +246,7 @@ const HomeScreen = () => {
   useEffect(() => {
     // Request notification permissions on app start
     notifee.requestPermission().then(authStatus => {
-      console.log('Auth status', authStatus);
+      // Permission status handled silently
     });
     NotificationService.setupChannels();
     dispatch(fetchMotivation());
@@ -340,9 +337,6 @@ const HomeScreen = () => {
       await trackHabitCompletion(user.id, habit.id, today);
       // Mark as completed for notification logic
       habit.completed = true;
-      console.log(
-        `[HomeScreen] Habit completed: ${habit.name} (id: ${habit.id}). Cancelling notification.`,
-      );
       await NotificationService.cancelHabitNotification(habit.id);
       setRefreshId(prev => prev + 1);
     },
@@ -440,6 +434,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      <NetworkStatusSnackbar />
       <AppLoader visible={loading} />
       <View style={styles.headerContainer}>
         <View style={styles.greetingRow}>

@@ -9,6 +9,7 @@ import { useAppSelector } from '@/redux/hook';
 import { useAppTheme } from '@/utils/ThemeContext';
 import { navigate } from '@/utils/NavigationUtils';
 import { ScreenRoutes } from '@/utils/screen_routes';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * ProfileScreen Component
@@ -152,6 +153,7 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <NetworkStatusSnackbar />
       <AppHeader title="Profile" showBackButton />
 
       {renderAvatarSection()}

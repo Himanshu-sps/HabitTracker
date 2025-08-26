@@ -18,6 +18,7 @@ import {
 } from '@/redux/slices/journalSlice';
 import { invalidateHistoryCache } from '@/redux/slices/historySlice';
 import { JournalType } from '@/type';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * ViewAllJournalsScreen Component
@@ -127,6 +128,7 @@ const ViewAllJournalsScreen = () => {
 
   return (
     <SafeAreaView style={style.safeAreaContainer}>
+      <NetworkStatusSnackbar />
       <AppHeader title={'All Journals'} showBackButton />
       <AppLoader visible={loading} />
 
