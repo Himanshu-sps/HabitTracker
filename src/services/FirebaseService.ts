@@ -229,10 +229,25 @@ export const trackHabitCompletion = async (
 ): Promise<BaseResponseType> => {
   try {
     const docId = `${habitId}_${trackingDate}`;
-    await setDoc(doc(getCompletedHabitsCollection(userId), docId), {
-      habitId,
-      date: trackingDate,
-    });
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await setDoc(doc(getCompletedHabitsCollection(userId), docId), {
+        habitId,
+        date: trackingDate,
+      });
+    } else {
+      // When offline, just queue the completion operation
+      // Firebase will handle the sync when network is available
+      setDoc(doc(getCompletedHabitsCollection(userId), docId), {
+        habitId,
+        date: trackingDate,
+      });
+    }
+
     return { success: true, msg: 'Habit completion tracked' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to track' };
@@ -462,16 +477,32 @@ export const saveJournalEntry = async (
     const { userId, journalDate } = journal;
     const docId = `${userId}_${journalDate}`;
     const docRef = doc(journalsCollection, docId);
-    await setDoc(docRef, journal, { merge: true });
-    const updatedDoc = await getDocs(
-      query(journalsCollection, where('__name__', '==', docId)),
-    );
-    const updatedData = updatedDoc.docs[0]?.data();
-    return {
-      success: true,
-      data: { id: docId, ...updatedData } as JournalType,
-      msg: 'Journal saved',
-    };
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await setDoc(docRef, journal, { merge: true });
+      const updatedDoc = await getDocs(
+        query(journalsCollection, where('__name__', '==', docId)),
+      );
+      const updatedData = updatedDoc.docs[0]?.data();
+      return {
+        success: true,
+        data: { id: docId, ...updatedData } as JournalType,
+        msg: 'Journal saved',
+      };
+    } else {
+      // When offline, just queue the save operation
+      // Firebase will handle the sync when network is available
+      setDoc(docRef, journal, { merge: true });
+      return {
+        success: true,
+        data: { id: docId, ...journal } as JournalType,
+        msg: 'Journal saved offline - will sync when online',
+      };
+    }
   } catch (error: any) {
     return { success: false, msg: error?.message || 'Failed to save journal' };
   }
@@ -576,7 +607,18 @@ export const deleteJournalEntry = async (
   journalId: string,
 ): Promise<BaseResponseType> => {
   try {
-    await deleteDoc(doc(journalsCollection, journalId));
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await deleteDoc(doc(journalsCollection, journalId));
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      deleteDoc(doc(journalsCollection, journalId));
+    }
+
     return { success: true, msg: 'Journal deleted' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Delete failed' };

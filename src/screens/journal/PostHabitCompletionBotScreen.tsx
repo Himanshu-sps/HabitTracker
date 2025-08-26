@@ -9,6 +9,7 @@ import {
   TextInput,
   Keyboard,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,6 +33,7 @@ import {
 } from '@/redux/slices/journalSlice';
 import { goBack } from '@/utils/NavigationUtils';
 import AILoader from '@/component/AILoader';
+import { fetch } from '@react-native-community/netinfo';
 
 export const MessageType = {
   BOT_SENDER: 'bot-sender',
@@ -70,8 +72,22 @@ const PostHabitCompletionBotScreen = () => {
       };
 
       // save journal to firestore
-      await dispatch(saveJournalEntryAction(journalObj));
-      goBack();
+      const result = await dispatch(saveJournalEntryAction(journalObj));
+
+      // Check if we're offline and show appropriate message
+      const netState = await fetch();
+      const isConnected = netState?.isConnected;
+
+      if (!isConnected) {
+        // Show offline success message before going back
+        Alert.alert(
+          'Journal Saved Offline',
+          "Your journal entry has been saved locally and will sync when you're back online.",
+          [{ text: 'OK', onPress: goBack }],
+        );
+      } else {
+        goBack();
+      }
     }
   };
 

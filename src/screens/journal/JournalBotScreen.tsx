@@ -83,16 +83,6 @@ const JournalBotScreen = () => {
 
   const handleCompletion = async () => {
     if (sentimentResult && user?.id) {
-      // Check network connectivity before saving
-      const isConnected = await checkNetworkConnectivity();
-      if (!isConnected) {
-        showInfoAlert(
-          'No Internet Connection',
-          "Please check your internet connection and try again. Your journal entry will be saved when you're back online.",
-        );
-        return;
-      }
-
       const journalObj = {
         sentimentResult: sentimentResult,
         journalEntry: journalEntry,
@@ -100,9 +90,21 @@ const JournalBotScreen = () => {
         userId: user?.id,
       };
 
-      // save journal to firestore
+      // save journal to firestore (now supports offline)
       await dispatch(saveJournalEntryAction(journalObj));
-      goBack();
+
+      // Check if we're offline and show appropriate message
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        // Show offline success message before going back
+        showInfoAlert(
+          'Journal Saved Offline',
+          "Your journal entry has been saved locally and will sync when you're back online.",
+          () => goBack(),
+        );
+      } else {
+        goBack();
+      }
     }
   };
 
@@ -117,9 +119,29 @@ const JournalBotScreen = () => {
     // Check network connectivity before proceeding
     const isConnected = await checkNetworkConnectivity();
     if (!isConnected) {
+      // Allow offline journal entry but show message
       showInfoAlert(
-        'No Internet Connection',
-        'Please check your internet connection and try again.',
+        'Offline Mode',
+        "You can still write your journal entry offline. AI analysis and habit suggestions will be available when you're back online.",
+        () => {
+          // Echo user message even offline
+          dispatch(
+            appendChatMessages([
+              {
+                id: `${MessageType.USER_SENDER}-3`,
+                sender: 'user',
+                message: textToAnalyze,
+              },
+              {
+                id: `${MessageType.BOT_SENDER}-offline`,
+                sender: 'bot',
+                message:
+                  "Great! I've saved your journal entry. When you're back online, I can analyze your mood and suggest habits. Tap Done to save.",
+              },
+            ]),
+          );
+          dispatch(setIsAnalysisDone(true));
+        },
       );
       return;
     }
