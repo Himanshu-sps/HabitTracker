@@ -101,6 +101,46 @@ export const firebaseLogout = async (): Promise<BaseResponseType> => {
   }
 };
 
+/**
+ * Sends a password reset email to the user
+ *
+ * @param email - User's email address
+ * @returns Promise with success status and message
+ */
+export const firebaseForgotPassword = async (
+  email: string,
+): Promise<BaseResponseType> => {
+  try {
+    await getAuth().sendPasswordResetEmail(email);
+    return {
+      success: true,
+      msg: 'Password reset email sent successfully. Please check your inbox.',
+    };
+  } catch (error: any) {
+    let msg = 'Failed to send password reset email';
+
+    // Handle specific Firebase auth errors
+    switch (error.code) {
+      case 'auth/user-not-found':
+        msg = 'No account found with this email address';
+        break;
+      case 'auth/invalid-email':
+        msg = 'Please enter a valid email address';
+        break;
+      case 'auth/too-many-requests':
+        msg = 'Too many requests. Please try again later';
+        break;
+      case 'auth/network-request-failed':
+        msg = 'Network error. Please check your connection and try again';
+        break;
+      default:
+        msg = error.message || msg;
+    }
+
+    return { success: false, msg };
+  }
+};
+
 // ========================================================================
 // HABIT MANAGEMENT SERVICES
 // ========================================================================
