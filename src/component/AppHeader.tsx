@@ -6,11 +6,13 @@ import { goBack } from '@/utils/NavigationUtils';
 
 interface AppHeaderProps {
   title: string;
+  leftMaterialIcon?: string;
   showBackButton?: boolean;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
   title,
+  leftMaterialIcon = 'chevron-left',
   showBackButton = false,
 }) => {
   const { colors } = useAppTheme();
@@ -19,7 +21,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     <View style={styles.headerContainer}>
       {showBackButton ? (
         <TouchableOpacity onPress={goBack} style={styles.backButton}>
-          <MaterialIcons name="chevron-left" size={32} color={colors.text} />
+          <MaterialIcons
+            name={leftMaterialIcon}
+            size={32}
+            color={colors.text}
+          />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />
@@ -36,8 +42,7 @@ function getStyles(colors: any) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: 8,
       borderBottomWidth: 1,
       borderBottomColor: colors.inputBorder,
     },

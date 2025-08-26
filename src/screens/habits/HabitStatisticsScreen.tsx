@@ -1,6 +1,10 @@
-import { StyleSheet, Text, View, ScrollView, Animated } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, Animated } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
+import * as Progress from 'react-native-progress';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+// Local imports
 import { HabitType } from '@/type';
 import { useAppTheme } from '@/utils/ThemeContext';
 import { getAppTextStyles } from '@/utils/AppTextStyles';
@@ -12,10 +16,9 @@ import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { STREAK_CHALLENGES } from '@/utils/AppConstants';
 import StreakChallengeCard from '@/component/StreakChallengeCard';
 import { fetchHabitStatistics } from '@/redux/slices/habitStatisticsSlice';
-import * as Progress from 'react-native-progress';
 import { AppRootState } from '@/redux/store';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
+// Type definitions
 type ParamList = {
   HabitStatistics: {
     habit: HabitType;
@@ -24,21 +27,54 @@ type ParamList = {
 
 type HabitStatisticsScreenRouteProp = RouteProp<ParamList, 'HabitStatistics'>;
 
+/**
+ * HabitStatisticsScreen Component
+ *
+ * A comprehensive statistics screen that displays detailed analytics for a specific habit,
+ * including progress tracking, streak information, and achievement challenges.
+ *
+ * Features:
+ * - Visual progress circle showing completion percentage
+ * - Current and best streak tracking
+ * - Streak challenge achievements with badges
+ * - Animated progress indicators
+ * - Real-time statistics updates
+ */
 const HabitStatisticsScreen = () => {
+  // Route parameters
   const route = useRoute<HabitStatisticsScreenRouteProp>();
   const { habit } = route.params;
+
+  // Theme and styles
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const textStyles = getAppTextStyles(colors);
+
+  // Redux hooks
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.authReducer.userData);
   const { completedDates, streaks } = useAppSelector(
     (state: AppRootState) => state.habitStatistics,
   );
+
+  // Local state
   const [animatedProgress, setAnimatedProgress] = useState(0);
+
+  // Animation refs
   const progressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // Calculated values
+  const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
+  const completedDays = completedDates.length;
+  const progress = totalDays > 0 ? completedDays / totalDays : 0;
+
+  // Effects
+
+  /**
+   * Effect: Set up progress animation listener
+   * Listens to progress animation updates and updates local state
+   */
   useEffect(() => {
     progressAnim.addListener(animation => {
       setAnimatedProgress(animation.value);
@@ -48,16 +84,20 @@ const HabitStatisticsScreen = () => {
     };
   }, [progressAnim]);
 
+  /**
+   * Effect: Fetch habit statistics when component mounts
+   * Loads completion data and streak information for the habit
+   */
   useEffect(() => {
     if (user?.id && habit.id) {
       dispatch(fetchHabitStatistics({ userId: user.id, habitId: habit.id }));
     }
   }, [user?.id, habit.id, dispatch]);
 
-  const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
-  const completedDays = completedDates.length;
-  const progress = totalDays > 0 ? completedDays / totalDays : 0;
-
+  /**
+   * Effect: Animate progress and fade in when progress changes
+   * Creates smooth animations for progress circle and screen fade-in
+   */
   useEffect(() => {
     Animated.parallel([
       Animated.timing(progressAnim, {
@@ -73,102 +113,127 @@ const HabitStatisticsScreen = () => {
     ]).start();
   }, [progress, progressAnim, fadeAnim]);
 
+  // Render methods
+
+  /**
+   * Renders the habit progress section with circular progress indicator
+   * Shows completion percentage, start/end dates, and visual progress
+   * @returns JSX element for the progress section
+   */
+  const renderProgressSection = () => (
+    <View style={styles.card}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="flag" size={24} color={colors.primary} />
+        <Text style={styles.sectionTitle}>Habit progress</Text>
+      </View>
+      <AppSpacer vertical={16} />
+      <View style={styles.progressContainer}>
+        <Progress.Circle
+          progress={animatedProgress}
+          size={150}
+          showsText={true}
+          formatText={() => `${completedDays} / ${totalDays}\nDAYS`}
+          color={colors.primary}
+          unfilledColor={colors.inputBg}
+          borderColor={colors.surface}
+          borderWidth={2}
+          thickness={12}
+          strokeCap="round"
+          textStyle={styles.progressText}
+        />
+      </View>
+      <AppSpacer vertical={16} />
+      <View style={styles.dateRow}>
+        <View>
+          <Text style={textStyles.label}>Start</Text>
+          <Text style={textStyles.body}>
+            {formatDate(habit.startDate, 'DD/MM/YY')}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={textStyles.label}>End</Text>
+          <Text style={textStyles.body}>
+            {formatDate(habit.endDate, 'DD/MM/YY')}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  /**
+   * Renders the streak information section
+   * Displays current and best streak counts with visual separation
+   * @returns JSX element for the streak section
+   */
+  const renderStreakSection = () => (
+    <View style={styles.card}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="link" size={24} color={colors.primary} />
+        <Text style={styles.sectionTitle}>Streak</Text>
+      </View>
+      <AppSpacer vertical={16} />
+      <View style={styles.streakRow}>
+        <View style={styles.streakBox}>
+          <Text style={styles.streakLabel}>Current</Text>
+          <Text style={styles.streakValue}>{streaks.currentStreak} DAYS</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.streakBox}>
+          <Text style={styles.streakLabel}>Best</Text>
+          <Text style={styles.streakValue}>{streaks.bestStreak} DAYS</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  /**
+   * Renders the streak challenge section
+   * Shows available challenges with completion status and badges
+   * @returns JSX element for the challenge section
+   */
+  const renderChallengeSection = () => (
+    <View style={styles.card}>
+      <View style={styles.sectionHeader}>
+        <MaterialIcons name="star" size={24} color={colors.primary} />
+        <Text style={styles.sectionTitle}>Streak Challenge</Text>
+      </View>
+      <AppSpacer vertical={10} />
+      {STREAK_CHALLENGES.map(challenge => (
+        <StreakChallengeCard
+          key={challenge.days}
+          days={challenge.days}
+          badge={challenge.badge}
+          description={challenge.description}
+          isCompleted={streaks.bestStreak >= challenge.days}
+          isDisabled={challenge.days > totalDays}
+        />
+      ))}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <AppHeader title={habit.name} showBackButton />
         <ScrollView style={styles.content}>
-          {/* Habit Progress Section */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <MaterialIcons name="flag" size={24} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Habit progress</Text>
-            </View>
-            <AppSpacer vertical={16} />
-            <View style={styles.progressContainer}>
-              <Progress.Circle
-                progress={animatedProgress}
-                size={150}
-                showsText={true}
-                formatText={() => `${completedDays} / ${totalDays}\nDAYS`}
-                color={colors.primary}
-                unfilledColor={colors.inputBg}
-                borderColor={colors.surface}
-                borderWidth={2}
-                thickness={12}
-                strokeCap="round"
-                textStyle={styles.progressText}
-              />
-            </View>
-            <AppSpacer vertical={16} />
-            <View style={styles.dateRow}>
-              <View>
-                <Text style={textStyles.label}>Start</Text>
-                <Text style={textStyles.body}>
-                  {formatDate(habit.startDate, 'DD/MM/YY')}
-                </Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={textStyles.label}>End</Text>
-                <Text style={textStyles.body}>
-                  {formatDate(habit.endDate, 'DD/MM/YY')}
-                </Text>
-              </View>
-            </View>
-          </View>
-
+          {renderProgressSection()}
           <AppSpacer vertical={16} />
-
-          {/* Streak Section */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <MaterialIcons name="link" size={24} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Streak</Text>
-            </View>
-            <AppSpacer vertical={16} />
-            <View style={styles.streakRow}>
-              <View style={styles.streakBox}>
-                <Text style={styles.streakLabel}>Current</Text>
-                <Text style={styles.streakValue}>
-                  {streaks.currentStreak} DAYS
-                </Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.streakBox}>
-                <Text style={styles.streakLabel}>Best</Text>
-                <Text style={styles.streakValue}>
-                  {streaks.bestStreak} DAYS
-                </Text>
-              </View>
-            </View>
-          </View>
-
+          {renderStreakSection()}
           <AppSpacer vertical={16} />
-
-          {/* Streak Challenge Section */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeader}>
-              <MaterialIcons name="star" size={24} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Streak Challenge</Text>
-            </View>
-            <AppSpacer vertical={10} />
-            {STREAK_CHALLENGES.map(challenge => (
-              <StreakChallengeCard
-                key={challenge.days}
-                days={challenge.days}
-                badge={challenge.badge}
-                description={challenge.description}
-                isCompleted={streaks.bestStreak >= challenge.days}
-                isDisabled={challenge.days > totalDays}
-              />
-            ))}
-          </View>
+          {renderChallengeSection()}
         </ScrollView>
       </Animated.View>
     </SafeAreaView>
   );
 };
 
+export default HabitStatisticsScreen;
+
+/**
+ * Generates styles for the HabitStatisticsScreen component
+ * @param colors - Theme colors object containing surface, cardBg, text, primary, inputBg, cardShadow, and divider colors
+ * @returns StyleSheet object with component styles including container, cards, progress indicators, and streak displays
+ */
 const getStyles = (colors: any) =>
   StyleSheet.create({
     container: {
@@ -238,5 +303,3 @@ const getStyles = (colors: any) =>
       backgroundColor: colors.divider,
     },
   });
-
-export default HabitStatisticsScreen;

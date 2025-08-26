@@ -61,8 +61,9 @@ const HabitListItem = forwardRef<any, Props>(
 
     useEffect(() => {
       if (user?.id && habit.id) {
-        console.log('GET HABIT STREAKS initial', habit.name);
-        getHabitStreaks(user.id, habit.id).then(setStreaks);
+        getHabitStreaks(user.id, habit.id).then(res => {
+          if (res.success && res.data) setStreaks(res.data);
+        });
       }
     }, [user?.id, habit.id, refreshKey]); // Add refreshKey as dependency
 

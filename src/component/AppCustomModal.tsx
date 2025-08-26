@@ -13,7 +13,13 @@ const AppCustomModal: React.FC<CustomModalProps> = ({ visible, children }) => {
   const styles = getStyles(colors);
 
   return (
-    <Modal animationType="slide" transparent={true} visible={visible}>
+    <Modal
+      animationType="slide"
+      transparent
+      visible={visible}
+      statusBarTranslucent
+      onRequestClose={() => {}}
+    >
       <View style={styles.container}>
         <View style={styles.modalContainer}>{children}</View>
       </View>
@@ -33,18 +39,18 @@ function getStyles(colors: any) {
     },
     modalContainer: {
       backgroundColor: colors.white,
-      padding: 8,
-      borderRadius: 12,
-      elevation: 8,
+      padding: 16,
+      borderRadius: 16,
+      elevation: 10,
       shadowColor: colors.cardShadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
       width: '100%',
       height: 'auto',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 20,
+      gap: 16,
     },
   });
 }

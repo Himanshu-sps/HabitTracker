@@ -20,19 +20,23 @@ import {
 import { getApp } from '@react-native-firebase/app';
 import moment from 'moment';
 
-// Helper to get Firestore instance
+// Firestore instance and collections
 const db = getFirestore(getApp());
-
 const usersCollection = collection(db, 'users');
 const habitsCollection = collection(db, 'habits');
 const journalsCollection = collection(db, 'journals');
 
 // ========================================================================
-// AUTHENTICATION
+// AUTHENTICATION SERVICES
 // ========================================================================
 
 /**
- * Creates a new user with email and password and stores user data in Firestore.
+ * Creates a new user account with email and password
+ *
+ * @param name - User's display name
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Promise with success status and user data or error message
  */
 export const firebaseSignUp = async (
   name: string,
@@ -61,7 +65,11 @@ export const firebaseSignUp = async (
 };
 
 /**
- * Signs in a user with email and password.
+ * Authenticates a user with email and password
+ *
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Promise with success status and message
  */
 export const firebaseLogin = async (
   email: string,
@@ -80,7 +88,9 @@ export const firebaseLogin = async (
 };
 
 /**
- * Logs out the current user.
+ * Signs out the currently authenticated user
+ *
+ * @returns Promise with success status and message
  */
 export const firebaseLogout = async (): Promise<BaseResponseType> => {
   try {
@@ -92,11 +102,14 @@ export const firebaseLogout = async (): Promise<BaseResponseType> => {
 };
 
 // ========================================================================
-// HABITS
+// HABIT MANAGEMENT SERVICES
 // ========================================================================
 
 /**
- * A reusable query for fetching habits for a user.
+ * Creates a reusable query for fetching habits for a specific user
+ *
+ * @param userId - The user's unique identifier
+ * @returns Firestore query object
  */
 const getHabitsQuery = (userId: string) =>
   query(
@@ -106,7 +119,10 @@ const getHabitsQuery = (userId: string) =>
   );
 
 /**
- * Adds a new habit to Firestore.
+ * Adds a new habit to Firestore
+ *
+ * @param habit - Habit data without ID and createdAt fields
+ * @returns Promise with success status and created habit data or error message
  */
 export const addHabitToFirestore = async (
   habit: Omit<HabitType, 'id' | 'createdAt'>,
@@ -125,6 +141,7 @@ export const addHabitToFirestore = async (
     } else {
       docRef = addDoc(habitsCollection, newBody);
     }
+
     return {
       success: true,
       data: { ...habit, id: docRef.id, createdAt: new Date().toISOString() },
@@ -136,14 +153,28 @@ export const addHabitToFirestore = async (
 };
 
 /**
- * Updates an existing habit in Firestore.
+ * Updates an existing habit in Firestore
+ *
+ * @param habit - Complete habit object with ID
+ * @returns Promise with success status and message
  */
 export const updateHabitInFirestore = async (
   habit: HabitType,
 ): Promise<BaseResponseType> => {
   try {
     if (!habit.id) throw new Error('Habit ID is missing');
-    await updateDoc(doc(habitsCollection, habit.id), habit);
+
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await updateDoc(doc(habitsCollection, habit.id), habit);
+    } else {
+      // When offline, just queue the update operation
+      // Firebase will handle the sync when network is available
+      updateDoc(doc(habitsCollection, habit.id), habit);
+    }
+
     return { success: true, msg: 'Habit updated successfully' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to update habit' };
@@ -151,7 +182,11 @@ export const updateHabitInFirestore = async (
 };
 
 /**
- * Subscribes to real-time updates for a user's habits.
+ * Subscribes to real-time updates for a user's habits
+ *
+ * @param userId - The user's unique identifier
+ * @param onUpdate - Callback function to handle habit updates
+ * @returns Unsubscribe function for the listener
  */
 export const subscribeToHabitsForUser = (
   userId: string,
@@ -167,17 +202,25 @@ export const subscribeToHabitsForUser = (
 };
 
 // ========================================================================
-// HABIT COMPLETION & STREAKS
+// HABIT COMPLETION & STREAK SERVICES
 // ========================================================================
 
 /**
- * Gets the sub-collection of completed habits for a user.
+ * Gets the sub-collection reference for completed habits for a user
+ *
+ * @param userId - The user's unique identifier
+ * @returns Firestore collection reference
  */
 const getCompletedHabitsCollection = (userId: string) =>
   collection(db, 'users', userId, 'completedHabits');
 
 /**
- * Tracks the completion of a habit for a user on a specific date.
+ * Tracks the completion of a habit for a user on a specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @param trackingDate - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and message
  */
 export const trackHabitCompletion = async (
   userId: string,
@@ -186,10 +229,25 @@ export const trackHabitCompletion = async (
 ): Promise<BaseResponseType> => {
   try {
     const docId = `${habitId}_${trackingDate}`;
-    await setDoc(doc(getCompletedHabitsCollection(userId), docId), {
-      habitId,
-      date: trackingDate,
-    });
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await setDoc(doc(getCompletedHabitsCollection(userId), docId), {
+        habitId,
+        date: trackingDate,
+      });
+    } else {
+      // When offline, just queue the completion operation
+      // Firebase will handle the sync when network is available
+      setDoc(doc(getCompletedHabitsCollection(userId), docId), {
+        habitId,
+        date: trackingDate,
+      });
+    }
+
     return { success: true, msg: 'Habit completion tracked' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to track' };
@@ -197,7 +255,12 @@ export const trackHabitCompletion = async (
 };
 
 /**
- * Subscribes to real-time updates for completed habit IDs for a user on a specific date.
+ * Subscribes to real-time updates for completed habit IDs for a user on a specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param date - Date string in YYYY-MM-DD format
+ * @param onUpdate - Callback function to handle completion updates
+ * @returns Unsubscribe function for the listener
  */
 export const subscribeToCompletedHabitsForDate = (
   userId: string,
@@ -217,12 +280,16 @@ export const subscribeToCompletedHabitsForDate = (
 };
 
 /**
- * Fetches all completion dates for a specific habit.
+ * Fetches all completion dates for a specific habit
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @returns Promise with success status and array of completion dates
  */
 export async function fetchCompletedHabitsForHabit(
   userId: string,
   habitId: string,
-): Promise<string[]> {
+): Promise<BaseResponseType<string[]>> {
   try {
     const completedHabitsQuery = query(
       getCompletedHabitsCollection(userId),
@@ -230,15 +297,22 @@ export async function fetchCompletedHabitsForHabit(
       orderBy('date', 'asc'),
     );
     const snapshot = await getDocs(completedHabitsQuery);
-    return snapshot.docs.map((docSnap: any) => docSnap.data().date);
-  } catch (error) {
-    console.error('Error fetching completed habits for habit:', error);
-    return [];
+    const dates = snapshot.docs.map((docSnap: any) => docSnap.data().date);
+    return { success: true, data: dates };
+  } catch (error: any) {
+    return {
+      success: false,
+      msg: error?.message || 'Error fetching completed habits for habit',
+      data: [],
+    };
   }
 }
 
 /**
- * Calculates the current and best streaks from a sorted list of dates.
+ * Calculates the current and best streaks from a sorted list of completion dates
+ *
+ * @param dates - Array of completion date strings in YYYY-MM-DD format
+ * @returns Object containing current and best streak counts
  */
 export function calculateStreaks(dates: string[]): {
   currentStreak: number;
@@ -281,26 +355,41 @@ export function calculateStreaks(dates: string[]): {
 }
 
 /**
- * Fetches the streak data for a specific habit.
+ * Fetches the complete streak data for a specific habit
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @returns Promise with success status and streak data including completion count
  */
 export async function getHabitStreaks(
   userId: string,
   habitId: string,
-): Promise<{
-  currentStreak: number;
-  bestStreak: number;
-  completedDays: number;
-}> {
-  const completedDates = await fetchCompletedHabitsForHabit(userId, habitId);
+): Promise<
+  BaseResponseType<{
+    currentStreak: number;
+    bestStreak: number;
+    completedDays: number;
+  }>
+> {
+  const completedRes = await fetchCompletedHabitsForHabit(userId, habitId);
+  const completedDates = completedRes.data || [];
   const streaks = calculateStreaks(completedDates);
   return {
-    ...streaks,
-    completedDays: completedDates.length,
+    success: completedRes.success,
+    msg: completedRes.msg,
+    data: {
+      ...streaks,
+      completedDays: completedDates.length,
+    },
   };
 }
 
 /**
- * Deletes a habit and all its completion records.
+ * Deletes a habit and all its completion records using a batch operation
+ *
+ * @param habit - The habit object to delete
+ * @param userId - The user's unique identifier
+ * @returns Promise with success status and message
  */
 export const deleteHabitsForUser = async (
   habit: HabitType,
@@ -308,6 +397,11 @@ export const deleteHabitsForUser = async (
 ): Promise<BaseResponseType> => {
   try {
     if (!habit.id) throw new Error('Habit ID is missing');
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
     const batch = writeBatch(db);
     batch.delete(doc(habitsCollection, habit.id));
 
@@ -318,7 +412,14 @@ export const deleteHabitsForUser = async (
     const trackingSnapshot = await getDocs(trackingQuery);
     trackingSnapshot.docs.forEach((docSnap: any) => batch.delete(docSnap.ref));
 
-    await batch.commit();
+    if (isConnected) {
+      await batch.commit();
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      batch.commit();
+    }
+
     return { success: true, msg: 'Habit deleted successfully' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to delete habit' };
@@ -326,59 +427,125 @@ export const deleteHabitsForUser = async (
 };
 
 /**
- * Deletes a completed habit record for a specific user, habit, and date.
+ * Deletes a completed habit record for a specific user, habit, and date
+ *
+ * @param userId - The user's unique identifier
+ * @param habitId - The habit's unique identifier
+ * @param date - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and message
  */
 export const deleteHabitCompletionForDate = async (
   userId: string,
   habitId: string,
   date: string,
-): Promise<void> => {
-  const docId = `${habitId}_${date}`;
-  await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+): Promise<BaseResponseType> => {
+  try {
+    const docId = `${habitId}_${date}`;
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+    }
+
+    return { success: true, msg: 'Deleted habit completion for date' };
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to delete record' };
+  }
 };
 
 // ========================================================================
-// JOURNALS
+// JOURNAL MANAGEMENT SERVICES
 // ========================================================================
 
 /**
- * Creates or updates a journal entry for a specific date.
+ * Creates or updates a journal entry for a specific date
+ *
+ * @param journal - Journal data without ID field
+ * @returns Promise with success status and saved journal data or error message
  */
 export const saveJournalEntry = async (
   journal: Omit<JournalType, 'id'>,
-): Promise<JournalType> => {
-  const { userId, journalDate } = journal;
-  const docId = `${userId}_${journalDate}`;
-  const docRef = doc(journalsCollection, docId);
-  await setDoc(docRef, journal, { merge: true });
-  const updatedDoc = await getDocs(
-    query(journalsCollection, where('__name__', '==', docId)),
-  );
-  const updatedData = updatedDoc.docs[0]?.data();
-  return { id: docId, ...updatedData } as JournalType;
+): Promise<BaseResponseType<JournalType>> => {
+  try {
+    const { userId, journalDate } = journal;
+    const docId = `${userId}_${journalDate}`;
+    const docRef = doc(journalsCollection, docId);
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await setDoc(docRef, journal, { merge: true });
+      const updatedDoc = await getDocs(
+        query(journalsCollection, where('__name__', '==', docId)),
+      );
+      const updatedData = updatedDoc.docs[0]?.data();
+      return {
+        success: true,
+        data: { id: docId, ...updatedData } as JournalType,
+        msg: 'Journal saved',
+      };
+    } else {
+      // When offline, just queue the save operation
+      // Firebase will handle the sync when network is available
+      setDoc(docRef, journal, { merge: true });
+      return {
+        success: true,
+        data: { id: docId, ...journal } as JournalType,
+        msg: 'Journal saved offline - will sync when online',
+      };
+    }
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to save journal' };
+  }
 };
 
 /**
- * Fetches a single journal entry for a user and date.
+ * Fetches a single journal entry for a user and specific date
+ *
+ * @param userId - The user's unique identifier
+ * @param journalDate - Date string in YYYY-MM-DD format
+ * @returns Promise with success status and journal data or null if not found
  */
 export const fetchJournalEntry = async (
   userId: string,
   journalDate: string,
-): Promise<JournalType | null> => {
-  const journalQuery = query(
-    journalsCollection,
-    where('userId', '==', userId),
-    where('journalDate', '==', journalDate),
-    limit(1),
-  );
-  const snapshot = await getDocs(journalQuery);
-  if (snapshot.empty) return null;
-  const docSnap = snapshot.docs[0];
-  return { id: docSnap.id, ...docSnap.data() } as JournalType;
+): Promise<BaseResponseType<JournalType | null>> => {
+  try {
+    const journalQuery = query(
+      journalsCollection,
+      where('userId', '==', userId),
+      where('journalDate', '==', journalDate),
+      limit(1),
+    );
+    const snapshot = await getDocs(journalQuery);
+    if (snapshot.empty)
+      return { success: true, data: null, msg: 'No journal for date' };
+    const docSnap = snapshot.docs[0];
+    return {
+      success: true,
+      data: { id: docSnap.id, ...docSnap.data() } as JournalType,
+    };
+  } catch (error: any) {
+    return { success: false, msg: error?.message || 'Failed to fetch journal' };
+  }
 };
 
 /**
- * Fetches all journal entries for a user within a date range.
+ * Fetches all journal entries for a user within a specified date range
+ *
+ * @param userId - The user's unique identifier
+ * @param startDate - Start date string in YYYY-MM-DD format
+ * @param endDate - End date string in YYYY-MM-DD format
+ * @returns Promise with success status and array of journal entries
  */
 export const fetchJournalsForUserInRange = async (
   userId: string,
@@ -403,6 +570,12 @@ export const fetchJournalsForUserInRange = async (
   }
 };
 
+/**
+ * Fetches all journal entries for a user, ordered by date (newest first)
+ *
+ * @param userId - The user's unique identifier
+ * @returns Promise with success status and array of all journal entries
+ */
 export const fetchAllJournalsForUser = async (
   userId: string,
 ): Promise<BaseResponseType<JournalType[]>> => {
@@ -422,10 +595,31 @@ export const fetchAllJournalsForUser = async (
   }
 };
 
-export const deleteJournalEntry = async (userId: string, journalId: string) => {
+/**
+ * Deletes a specific journal entry by ID
+ *
+ * @param userId - The user's unique identifier
+ * @param journalId - The journal entry's unique identifier
+ * @returns Promise with success status and message
+ */
+export const deleteJournalEntry = async (
+  userId: string,
+  journalId: string,
+): Promise<BaseResponseType> => {
   try {
-    await deleteDoc(doc(journalsCollection, journalId));
-    return { success: true };
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await deleteDoc(doc(journalsCollection, journalId));
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      deleteDoc(doc(journalsCollection, journalId));
+    }
+
+    return { success: true, msg: 'Journal deleted' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Delete failed' };
   }
