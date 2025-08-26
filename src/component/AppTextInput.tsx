@@ -72,7 +72,7 @@ function getStyles(colors: any) {
     inputWithIcon: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.inputBg,
+      backgroundColor: colors.cardBg,
       borderRadius: 10,
       paddingHorizontal: 10,
       borderWidth: 1,
@@ -86,7 +86,7 @@ function getStyles(colors: any) {
       minHeight: 48,
       fontSize: 16,
       color: colors.text,
-      backgroundColor: 'transparent',
+      backgroundColor: colors.cardBg,
     },
     rightIcon: {
       marginLeft: 6,

@@ -6,7 +6,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import HabitStack from '@/navigation/HabitStack';
-import JournalScreen from '@/screens/journal/JournalScreen';
 import { useAppTheme } from '@/utils/ThemeContext';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { ViewStyle } from 'react-native';
@@ -76,16 +75,18 @@ const MainTabs = () => {
         }}
       />
 
-      <Tab.Screen
-        name={ScreenRoutes.JournalScreen}
-        component={JournalScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <Icon name="book" color={color} size={24} />
-          ),
-          title: 'Journal',
-        }}
-      />
+      {false && (
+        <Tab.Screen
+          name={ScreenRoutes.JournalScreen}
+          component={() => null as any}
+          options={{
+            tabBarIcon: ({ color }) => (
+              <Icon name="book" color={color} size={24} />
+            ),
+            title: 'Journal',
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 };

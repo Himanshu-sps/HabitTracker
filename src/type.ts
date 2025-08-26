@@ -57,3 +57,10 @@ export interface MoodType {
   moodIcon: string;
   moodLevel: number;
 }
+
+export interface ChatMsg {
+  id: string;
+  sender: 'bot' | 'user';
+  message?: string;
+  moodResult?: SentimentResult;
+}
