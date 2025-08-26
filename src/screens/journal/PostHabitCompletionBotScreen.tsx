@@ -122,6 +122,20 @@ const PostHabitCompletionBotScreen = () => {
           },
         ]),
       );
+    } else {
+      // Add error message on failure
+      dispatch(
+        appendPostCompletionChatMessages([
+          {
+            id: `${MessageType.BOT_SENDER}-error`,
+            sender: 'bot',
+            message:
+              "I'm sorry, I couldn't analyze your journal entry right now. Please try again later.",
+          },
+        ]),
+      );
+      dispatch(setAiLoading(false));
+      return;
     }
 
     // set analysis flag to true

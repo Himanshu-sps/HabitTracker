@@ -337,15 +337,6 @@ const HabitListScreen = () => {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text style={textStyles.title}>No habits found</Text>
-
-      {searchQuery.trim() === '' ? (
-        <TouchableOpacity
-          style={styles.emptyStateButton}
-          onPress={handleCreateHabit}
-        >
-          <Text style={styles.emptyStateButtonText}>Create a Habit</Text>
-        </TouchableOpacity>
-      ) : null}
     </View>
   );
 

@@ -382,6 +382,11 @@ export const deleteHabitsForUser = async (
 ): Promise<BaseResponseType> => {
   try {
     if (!habit.id) throw new Error('Habit ID is missing');
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
     const batch = writeBatch(db);
     batch.delete(doc(habitsCollection, habit.id));
 
@@ -392,7 +397,14 @@ export const deleteHabitsForUser = async (
     const trackingSnapshot = await getDocs(trackingQuery);
     trackingSnapshot.docs.forEach((docSnap: any) => batch.delete(docSnap.ref));
 
-    await batch.commit();
+    if (isConnected) {
+      await batch.commit();
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      batch.commit();
+    }
+
     return { success: true, msg: 'Habit deleted successfully' };
   } catch (error: any) {
     return { success: false, msg: error.message || 'Failed to delete habit' };
@@ -414,7 +426,19 @@ export const deleteHabitCompletionForDate = async (
 ): Promise<BaseResponseType> => {
   try {
     const docId = `${habitId}_${date}`;
-    await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+
+    // Check network status first
+    const netState = await fetch();
+    const isConnected = netState?.isConnected;
+
+    if (isConnected) {
+      await deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+    } else {
+      // When offline, just queue the delete operation
+      // Firebase will handle the sync when network is available
+      deleteDoc(doc(getCompletedHabitsCollection(userId), docId));
+    }
+
     return { success: true, msg: 'Deleted habit completion for date' };
   } catch (error: any) {
     return { success: false, msg: error?.message || 'Failed to delete record' };

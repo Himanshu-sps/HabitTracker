@@ -37,6 +37,7 @@ import {
   updateHabitInFirestore,
   deleteHabitCompletionForDate,
 } from '@/services/FirebaseService';
+import NetworkStatusSnackbar from '@/component/NetworkStatusSnackbar';
 
 /**
  * AddEditHabitScreen Component
@@ -522,6 +523,7 @@ const AddEditHabitScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <NetworkStatusSnackbar />
       <AppHeader
         title={habitToEdit ? 'Edit Habit' : 'New Habit'}
         showBackButton

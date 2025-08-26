@@ -164,6 +164,20 @@ const JournalBotScreen = () => {
           },
         ]),
       );
+    } else {
+      // Add error message on failure
+      dispatch(
+        appendChatMessages([
+          {
+            id: `${MessageType.BOT_SENDER}-error`,
+            sender: 'bot',
+            message:
+              "I'm sorry, I couldn't analyze your journal entry right now. Please try again later.",
+          },
+        ]),
+      );
+      dispatch(setAiLoading(false));
+      return;
     }
 
     const aiHabits = await dispatch(
@@ -190,6 +204,18 @@ const JournalBotScreen = () => {
             id: `${MessageType.BOT_SENDER}-8}`,
             sender: 'bot',
             message: 'All set! Tap Done to save your journal.',
+          },
+        ]),
+      );
+    } else {
+      // Add error message when AI habits request fails
+      dispatch(
+        appendChatMessages([
+          {
+            id: `${MessageType.BOT_SENDER}-habits-error`,
+            sender: 'bot',
+            message:
+              "I couldn't generate habits for you right now, but your journal analysis is complete. You can still save your entry.",
           },
         ]),
       );
