@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  Alert,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { resetAndNavigate } from '@/utils/NavigationUtils';
@@ -13,6 +14,8 @@ import { AppStrings } from '@/utils/AppStrings';
 import { ScreenRoutes } from '@/utils/screen_routes';
 import AppTextInput from '@/component/AppTextInput';
 import { useAppTheme } from '@/utils/ThemeContext';
+import { firebaseForgotPassword } from '@/services/FirebaseService';
+import AppLoader from '@/component/AppLoader';
 
 const ForgotPasswordScreen: React.FC = () => {
   const { colors } = useAppTheme();
@@ -20,16 +23,49 @@ const ForgotPasswordScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleForgotPassword = () => {
-    if (!email) {
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
       setError(AppStrings.pleaseEnterYourEmail);
       setMessage('');
       return;
     }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address');
+      setMessage('');
+      return;
+    }
+
+    setLoading(true);
     setError('');
-    setMessage(AppStrings.forgotSuccess);
-    // TODO: Implement actual forgot password logic
+    setMessage('');
+
+    try {
+      const result = await firebaseForgotPassword(email.trim());
+
+      if (result.success) {
+        setMessage(result.msg || 'Password reset email sent successfully');
+        // Clear email after successful request
+        setEmail('');
+
+        // Show success alert
+        Alert.alert(
+          'Password Reset Email Sent',
+          'Please check your email inbox and follow the instructions to reset your password.',
+          [{ text: 'OK' }],
+        );
+      } else {
+        setError(result.msg || 'Failed to send password reset email');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,6 +76,7 @@ const ForgotPasswordScreen: React.FC = () => {
         </View>
       </View>
 
+      <AppLoader visible={loading} />
       <View style={styles.card}>
         <Text style={styles.title}>{AppStrings.forgotTitle}</Text>
         <Text style={styles.subtitle}>{AppStrings.forgotSubtitle}</Text>
@@ -51,16 +88,30 @@ const ForgotPasswordScreen: React.FC = () => {
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={text => {
+            setEmail(text);
+            // Clear error when user starts typing
+            if (error) setError('');
+            if (message) setMessage('');
+          }}
           returnKeyType="done"
+          onSubmitEditing={handleForgotPassword}
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
-        <TouchableOpacity style={styles.button} onPress={handleForgotPassword}>
-          <Text style={styles.buttonText}>{AppStrings.forgotSubmit}</Text>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleForgotPassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <Text style={styles.buttonText}>Sending...</Text>
+          ) : (
+            <Text style={styles.buttonText}>{AppStrings.forgotSubmit}</Text>
+          )}
         </TouchableOpacity>
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>{AppStrings.forgotFooter}</Text>
@@ -166,6 +217,10 @@ const getStyles = (colors: any) =>
       shadowOpacity: 0.15,
       shadowRadius: 8,
       elevation: 2,
+    },
+    buttonDisabled: {
+      backgroundColor: colors.subtitle,
+      opacity: 0.6,
     },
     buttonText: {
       color: colors.white,
