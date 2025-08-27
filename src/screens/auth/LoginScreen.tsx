@@ -117,7 +117,7 @@ const LoginScreen: React.FC = () => {
    * Navigates user to password recovery functionality
    */
   const handleForgotPassword = (): void => {
-    navigate('ForgotPasswordScreen');
+    navigate(ScreenRoutes.ForgotPasswordScreen);
   };
 
   /**
