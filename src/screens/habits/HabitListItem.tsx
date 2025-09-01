@@ -59,15 +59,32 @@ const HabitListItem = forwardRef<any, Props>(
     });
     const user = useAppSelector(state => state.authReducer.userData);
 
+    // Calculate total days for the habit period
+    // For single-day habits (same start/end date): totalDays = 1
+    // For multi-day habits: totalDays = difference + 1 (inclusive counting)
+    const totalDays = moment(habit.startDate).isSame(
+      moment(habit.endDate),
+      'day',
+    )
+      ? 1
+      : getDaysDifference(habit.startDate, habit.endDate) + 1;
+
     useEffect(() => {
       if (user?.id && habit.id) {
-        getHabitStreaks(user.id, habit.id).then(res => {
-          if (res.success && res.data) setStreaks(res.data);
+        getHabitStreaks(user.id, habit.id, habit).then(res => {
+          if (res.success && res.data) {
+            console.log('HabitListItem - Streaks data:', {
+              habitId: habit.id,
+              startDate: habit.startDate,
+              endDate: habit.endDate,
+              totalDays,
+              streaks: res.data,
+            });
+            setStreaks(res.data);
+          }
         });
       }
-    }, [user?.id, habit.id, refreshKey]); // Add refreshKey as dependency
-
-    const totalDays = getDaysDifference(habit.startDate, habit.endDate) + 1;
+    }, [user?.id, habit.id, habit, refreshKey, totalDays]); // Add totalDays as dependency
 
     // Helper: is notification scheduled for this habit?
     const isNotificationScheduled =
