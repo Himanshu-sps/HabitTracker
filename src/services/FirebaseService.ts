@@ -404,6 +404,7 @@ export function calculateStreaks(dates: string[]): {
 export async function getHabitStreaks(
   userId: string,
   habitId: string,
+  habit?: HabitType, // Add habit parameter to filter completions by date range
 ): Promise<
   BaseResponseType<{
     currentStreak: number;
@@ -412,7 +413,25 @@ export async function getHabitStreaks(
   }>
 > {
   const completedRes = await fetchCompletedHabitsForHabit(userId, habitId);
-  const completedDates = completedRes.data || [];
+  let completedDates = completedRes.data || [];
+
+  // If habit object is provided, filter completions to only include dates within the habit period
+  if (habit && habit.startDate && habit.endDate) {
+    const startMoment = moment(habit.startDate);
+    const endMoment = moment(habit.endDate);
+
+    completedDates = completedDates.filter(dateStr => {
+      const completionDate = moment(dateStr);
+      const isInRange = completionDate.isBetween(
+        startMoment,
+        endMoment,
+        'day',
+        '[]',
+      ); // Inclusive of both start and end dates
+      return isInRange;
+    });
+  }
+
   const streaks = calculateStreaks(completedDates);
   return {
     success: completedRes.success,

@@ -28,6 +28,13 @@ export function formatDate(
 export function getDaysDifference(startDate: string, endDate: string): number {
   const start = moment(startDate, DATE_FORMAT_ZERO);
   const end = moment(endDate, DATE_FORMAT_ZERO);
+
+  // If dates are the same, return 0
+  if (start.isSame(end, 'day')) {
+    return 0;
+  }
+
+  // Calculate difference in days
   return end.diff(start, 'days');
 }
 
